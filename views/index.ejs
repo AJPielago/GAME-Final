@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuest - AI-Driven Programming Education</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="/js/music.js" defer></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">
+                    <img src="/images/logo.gif" alt="CodeQuest Logo" class="brand-logo">
+                    <span class="brand-text">CodeQuest</span>
+                </a>
+            </div>
+            
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/leaderboard" class="nav-link">Leaderboard</a>
+                <% if (user) { %>
+                    <a href="/dashboard" class="nav-link">Dashboard</a>
+                    <a href="/profile" class="nav-link">Profile</a>
+                    <% if (user.role === 'admin') { %>
+                    <a href="/admin/analytics" class="nav-link" style="color: #FFD700; font-weight: bold;">
+                        <i class="fas fa-chart-bar"></i> Admin
+                    </a>
+                    <% } %>
+                    <span class="nav-username">Welcome, <%= user.username %>!</span>
+                    <form action="/auth/logout" method="POST" style="display: inline;">
+                        <button type="submit" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </form>
+                <% } else { %>
+                    <a href="/auth/login" class="nav-link">Login</a>
+                    <a href="/auth/register" class="nav-link register-link">Join Quest</a>
+                <% } %>
+            </div>
+            
+            <div class="nav-toggle" id="navToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Music Button -->
+    <button id="toggleMusic" title="Music On" aria-pressed="true" style="position:fixed;top:85px;left:15px;width:48px;height:48px;padding:0;margin:0;border:none;cursor:pointer;z-index:10000;background:rgba(0,0,0,0.3);border-radius:8px;font-size:28px;line-height:48px;text-align:center;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🔊</button>
+    <!-- Main Content -->
+    <main class="main-content">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-background">
+            <div class="code-animation">
+                <div class="code-line" data-delay="0">const quest = new CodeQuest();</div>
+                <div class="code-line" data-delay="1000">quest.startJourney();</div>
+                <div class="code-line" data-delay="2000">// Level up your coding skills!</div>
+            </div>
+        </div>
+        
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="hero-logo">
+                    <img src="/images/logo.gif" alt="CodeQuest Logo" class="main-logo">
+                </div>
+                <h1 class="hero-title">
+                    <span class="title-subtitle">JavaScript Medieval Adventure</span>
+                </h1>
+                <p class="hero-description">
+                    Embark on an epic medieval quest to master the ancient art of JavaScript! 
+                    Journey through mystical kingdoms, battle syntax dragons, and unlock the secrets 
+                    of programming magic in this legendary RPG adventure.
+                </p>
+                <div class="hero-actions">
+                    <% if (user) { %>
+                        <a href="/character-selection" class="btn btn-primary btn-large">
+                            <i class="fas fa-play"></i>
+                            Start Your Quest
+                        </a>
+                        <a href="/character-selection" class="btn btn-secondary btn-large">
+                            <i class="fas fa-dungeon"></i>
+                            Begin Quest
+                        </a>
+                    <% } else { %>
+                        <a href="/auth/register" class="btn btn-primary btn-large">
+                            <i class="fas fa-play"></i>
+                            Start Your Quest
+                        </a>
+                        <a href="/auth/login" class="btn btn-secondary btn-large">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Continue Journey
+                        </a>
+                    <% } %>
+                    <a href="/tutorial" class="btn btn-tertiary btn-large">
+                        <i class="fas fa-graduation-cap"></i>
+                        Tutorial
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number"><%= (typeof stats !== 'undefined' ? stats.activeCoders : 0) %>+</span>
+                        <span class="stat-label">Active Coders</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number"><%= (typeof stats !== 'undefined' ? stats.languages : 5) %>+</span>
+                        <span class="stat-label">Languages</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number"><%= (typeof stats !== 'undefined' ? stats.challenges : 50) %>+</span>
+                        <span class="stat-label">Challenges</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Master JavaScript in the Medieval Realm</h2>
+                <p class="section-subtitle">Embark on epic quests through mystical kingdoms while mastering the ancient art of JavaScript programming</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <h3 class="feature-title">Knight's Quest Progression</h3>
+                    <p class="feature-description">
+                        Rise through the ranks from novice squire to legendary JavaScript knight! Each level unlocks new programming spells and epic battles against syntax dragons.
+                    </p>
+                    <div class="feature-demo">
+                        <div class="pixel-progress">
+                            <div class="level-indicator pixel">Level 12 JS Hero</div>
+                            <div class="pixel-xp-bar">
+                                <div class="pixel-xp-fill" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bug"></i>
+                    </div>
+                    <h3 class="feature-title">Battle Syntax Dragons</h3>
+                    <p class="feature-description">
+                        Face legendary syntax dragons, undefined variable beasts, and logic bug monsters! Wield your JavaScript spells to defeat these coding creatures and earn experience points.
+                    </p>
+                    <div class="feature-demo">
+                        <div class="monster-battle">
+                            <div class="battle-header">VS Syntax Monster</div>
+                            <div class="battle-code">
+                                <pre><code>function attackMonster() {
+    let damage = 50;
+    return "Syntax defeated!";
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-map"></i>
+                    </div>
+                    <h3 class="feature-title">Explore Mystical Kingdoms</h3>
+                    <p class="feature-description">
+                        Journey through legendary JavaScript kingdoms! Visit the Function Castle, Array Forest, Object Dungeon, and more mystical programming realms.
+                    </p>
+                    <div class="feature-demo">
+                        <div class="world-map-demo">
+                            <div class="world-node completed">🏰 Functions</div>
+                            <div class="world-node completed">🌲 Arrays</div>
+                            <div class="world-node current">🏚️ Objects</div>
+                            <div class="world-node locked">⚡ Async</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-terminal"></i>
+                    </div>
+                    <h3 class="feature-title">Ancient Code Tome</h3>
+                    <p class="feature-description">
+                        Cast your JavaScript spells in our mystical code tome! Execute programming magic instantly and watch your syntax spells come to life in the ancient console.
+                    </p>
+                    <div class="feature-demo">
+                        <div class="pixel-terminal">
+                            <div class="terminal-header">
+                                <span class="terminal-title">JS Terminal v1.0</span>
+                                <div class="terminal-dots">
+                                    <span class="dot red"></span>
+                                    <span class="dot yellow"></span>
+                                    <span class="dot green"></span>
+                                </div>
+                            </div>
+                            <div class="terminal-content">
+                                <span class="prompt">></span> castSpell("fireball")
+                                <div class="output pixel">🔥 Monster defeated! +50 XP</div>
+                                <span class="prompt">></span> _
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h3 class="feature-title">Medieval Achievements</h3>
+                    <p class="feature-description">
+                        Collect legendary achievements and royal badges! Unlock special rewards for mastering JavaScript concepts and defeating epic programming dragons.
+                    </p>
+                    <div class="feature-demo">
+                        <div class="pixel-badges">
+                            <div class="pixel-badge earned">
+                                <span class="badge-icon">⚔️</span>
+                                <span>Syntax Slayer</span>
+                            </div>
+                            <div class="pixel-badge earned">
+                                <span class="badge-icon">🛡️</span>
+                                <span>Bug Defender</span>
+                            </div>
+                            <div class="pixel-badge locked">
+                                <span class="badge-icon">👑</span>
+                                <span>JS Master</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 class="feature-title">Royal Leaderboard</h3>
+                    <p class="feature-description">
+                        Compete with fellow JavaScript knights in our royal leaderboard! Climb the medieval rankings and become the ultimate JS champion of the realm.
+                    </p>
+                    <div class="feature-demo">
+                        <div class="pixel-leaderboard">
+                            <div class="pixel-rank">
+                                <span class="rank">1st</span>
+                                <span class="username">JS_Hero_42</span>
+                                <span class="level">Level 25</span>
+                            </div>
+                            <div class="pixel-rank">
+                                <span class="rank">2nd</span>
+                                <span class="username">PixelCoder</span>
+                                <span class="level">Level 24</span>
+                            </div>
+                            <div class="pixel-rank">
+                                <span class="rank">3rd</span>
+                                <span class="username">SyntaxMaster</span>
+                                <span class="level">Level 23</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Begin Your Medieval Quest?</h2>
+                <p class="cta-description">
+                    Join thousands of JavaScript knights who are already mastering their programming skills through epic medieval adventures.
+                    Your journey from JS squire to coding champion starts here!
+                </p>
+                <div class="cta-actions">
+                    <% if (user) { %>
+                        <a href="/character-selection" class="btn btn-primary btn-large">
+                            <i class="fas fa-user-friends"></i>
+                            Select Your Hero
+                        </a>
+                        <a href="/leaderboard" class="btn btn-outline btn-large">
+                            <i class="fas fa-crown"></i>
+                            View Knight Rankings
+                        </a>
+                    <% } else { %>
+                        <a href="/auth/register" class="btn btn-primary btn-large">
+                            <i class="fas fa-gamepad"></i>
+                            Begin Your Medieval Quest
+                        </a>
+                        <a href="/leaderboard" class="btn btn-outline btn-large">
+                            <i class="fas fa-crown"></i>
+                            View Knight Rankings
+                        </a>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>CodeQuest</h4>
+                    <p>Master JavaScript through epic medieval adventures!</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/leaderboard">Leaderboard</a></li>
+                        <% if (user) { %>
+                            <li><a href="/dashboard">Dashboard</a></li>
+                        <% } else { %>
+                            <li><a href="/auth/register">Join Quest</a></li>
+                        <% } %>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul>
+                        <li><a href="#">Discord</a></li>
+                        <li><a href="#">GitHub</a></li>
+                        <li><a href="#">Support</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 CodeQuest. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Background Music -->
+    <audio id="backgroundMusic" loop>
+        <source src="/audio/music.mp3" type="audio/mpeg">
+        <source src="/audio/music.ogg" type="audio/ogg">
+    </audio>
+
+    <script src="/js/main.js"></script>
+    
+    <style>
+        /* Fix layout spacing */
+        .main-content {
+            margin-top: 80px; /* Account for fixed navbar */
+        }
+        
+        /* Footer styles */
+        .footer {
+            background: var(--bg-primary);
+            border-top: 2px solid var(--gold);
+            padding: var(--spacing-xxl) 0 var(--spacing-lg);
+            margin-top: var(--spacing-xxl);
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .footer-section h4 {
+            color: var(--gold);
+            margin-bottom: var(--spacing-md);
+            font-size: 1.2rem;
+        }
+        
+        .footer-section p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .footer-section ul li {
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .footer-section ul li a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-section ul li a:hover {
+            color: var(--gold);
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid var(--silver);
+            padding-top: var(--spacing-lg);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        /* Navigation styles */
+        .nav-username {
+            color: var(--gold);
+            font-weight: bold;
+            margin-right: var(--spacing-md);
+            font-size: 0.9rem;
+        }
+        
+        .logout-btn {
+            background: var(--crimson);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+    </style>
+</body>
+</html>
+

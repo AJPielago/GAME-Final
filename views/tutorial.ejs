@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuest - Tutorial</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
+            
+        /* Ensure the game container takes full viewport height minus navbar */
+        .main-content {
+            position: absolute;
+            top: 60px; /* Height of the navbar */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+        
+        /* Game wrapper styling */
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        /* Phaser canvas styling */
+        #game-wrapper canvas {
+            display: block;
+            position: relative;
+            z-index: 1;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+        }
+        
+        /* Navbar styles */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 10px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+        }
+        
+        .brand-link {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .brand-logo {
+            height: 40px;
+            margin-right: 10px;
+        }
+        
+        .brand-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 5px 10px;
+        }
+        
+        .nav-link:hover {
+            color: #4CAF50;
+        }
+        
+        .nav-username {
+            color: white;
+            margin: 0 10px;
+        }
+        
+        .logout-btn {
+            background: none;
+            border: 1px solid white;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Game container styles */
+        #game-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #2c3e50;
+        }
+        
+        /* Ensure canvas is visible */
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #2c3e50;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        /* Loading screen styles */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                right: 0;
+                background-color: rgba(0, 0, 0, 0.9);
+                flex-direction: column;
+                padding: 20px 0;
+            }
+            
+            .nav-menu.active {
+                display: flex;
+            }
+            
+            .nav-toggle {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                width: 30px;
+                height: 21px;
+                cursor: pointer;
+                padding: 0;
+                background: none;
+                border: none;
+                outline: none;
+            }
+            
+            .bar {
+                height: 3px;
+                width: 100%;
+                background-color: white;
+                border-radius: 3px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .nav-toggle {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Runtime console filter to suppress very noisy debug messages while debugging changes
+        (function(){
+            try {
+                const blocked = [
+                    'HANDLE MOVEMENT CALLED',
+                    'RAW KEY STATES',
+                    'CALLING handleMovement',
+                    'PLAYER CONTROLLER UPDATE CALLED',
+                    'TUTORIAL SCENE UPDATE CALLED',
+                    'CALLING playerController.update',
+                    'ABOUT TO CALL PLAYER CONTROLLER UPDATE'
+                ];
+                const emojiIndicators = ['🎮','🔥','💥','🔍','🎯','🚀'];
+                const origLog = console.log.bind(console);
+                console.log = function(...args) {
+                    try {
+                        // If developer explicitly enabled verbose logging or runtime debug mode, allow all logs
+                        if (typeof window !== 'undefined') {
+                            // Allow if explicit verbose flag set or global gameState.debugMode is true
+                            if (window.__VERBOSE_LOGGING_ENABLED) { origLog(...args); return; }
+                            try {
+                                if (window.gameState && window.gameState.debugMode) { origLog(...args); return; }
+                            } catch (e) {
+                                // ignore
+                            }
+                        }
+
+                        const first = args[0];
+                        const asStr = (typeof first === 'string') ? first : (args.map(a => String(a)).join(' '));
+                        for (const b of blocked) if (asStr.indexOf(b) !== -1) return;
+                        for (const e of emojiIndicators) if (asStr.indexOf(e) !== -1) return;
+                    } catch (e) {
+                        // fallback to original
+                    }
+                    origLog(...args);
+                };
+            } catch (e) {
+                // ignore
+            }
+        })();
+    </script>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">
+                    <img src="/images/logo.gif" alt="CodeQuest Logo" class="brand-logo">
+                    <span class="brand-text">CodeQuest</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/profile" class="nav-link">Profile</a>
+                <% if (typeof user !== 'undefined' && user) { %>
+                    <% if (user.role === 'admin') { %>
+                    <a href="/admin/analytics" class="nav-link" style="color: #FFD700; font-weight: bold;">
+                        <i class="fas fa-chart-bar"></i> Admin
+                    </a>
+                    <% } %>
+                    <span class="nav-username">Welcome, <%= user.username %>!</span>
+                <% } %>
+                <form action="/auth/logout" method="POST" style="display: inline;">
+                    <button type="submit" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </form>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Loading screen -->
+        <div id="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Loading game...</p>
+        </div>
+        
+        <!-- Game container -->
+        <div id="game-wrapper">
+            <!-- Phaser will create the canvas here -->
+        </div>
+    </main>
+
+    <audio id="backgroundMusic" loop>
+        <source src="/audio/music.mp3" type="audio/mpeg">
+        <source src="/audio/music.ogg" type="audio/ogg">
+    </audio>
+
+    <!-- Load Phaser from CDN FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    
+    <!-- Game Configuration and Initialization -->
+    <script>
+        // Global configuration object
+        window.CONFIG = Object.freeze({
+            debug: true,
+            noCollisionTrees: new Set(),
+            version: '1.0.0'
+        });
+        
+        // Wait for Phaser to load completely, with timeout and local fallback
+        function waitForPhaserLoad(timeoutMs = 8000) {
+            return new Promise((resolve, reject) => {
+                const start = performance.now();
+
+                function check() {
+                    if (typeof Phaser !== 'undefined') {
+                        console.log('Phaser loaded successfully, version:', Phaser.VERSION);
+                        return resolve();
+                    }
+
+                    if (performance.now() - start > timeoutMs) {
+                        console.warn('Phaser CDN did not load within timeout. Attempting local fallback...');
+                        // Try local copy as a fallback
+                        const localPath = '/js/lib/phaser.min.js';
+                        const existing = document.querySelector(`script[src="${localPath}"]`);
+                        if (!existing) {
+                            const s = document.createElement('script');
+                            s.src = localPath;
+                            s.onload = () => {
+                                if (typeof Phaser !== 'undefined') {
+                                    console.log('Phaser loaded from local fallback.');
+                                    return resolve();
+                                }
+                                return reject(new Error('Local Phaser loaded but global Phaser is still undefined'));
+                            };
+                            s.onerror = () => reject(new Error('Failed to load Phaser from CDN and local fallback'));
+                            // mark as created so subsequent checks can attach to it
+                            s.setAttribute('data-local-phaser', '1');
+                            document.head.appendChild(s);
+                        } else {
+                            // Attach to existing local script's load/error events and wait a short grace period
+                            let settled = false;
+                            const onLoad = () => {
+                                if (settled) return;
+                                settled = true;
+                                if (typeof Phaser !== 'undefined') {
+                                    console.log('Phaser became available after local script load');
+                                    return resolve();
+                                }
+                                return reject(new Error('Local script loaded but Phaser still undefined'));
+                            };
+                            const onError = () => {
+                                if (settled) return;
+                                settled = true;
+                                return reject(new Error('Local phaser script failed to load'));
+                            };
+                            existing.addEventListener('load', onLoad);
+                            existing.addEventListener('error', onError);
+
+                            // Secondary timeout: wait up to 4s for the local script to settle
+                            setTimeout(() => {
+                                if (settled) return;
+                                settled = true;
+                                if (typeof Phaser !== 'undefined') {
+                                    console.log('Phaser became available within secondary wait');
+                                    return resolve();
+                                }
+                                return reject(new Error('Phaser not available after timeout; local script already present'));
+                            }, 4000);
+                        }
+                        return;
+                    }
+
+                    // Poll until Phaser becomes available
+                    setTimeout(check, 100);
+                }
+
+                check();
+            });
+        }
+        
+        // Hide loading screen when game is ready
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+        }
+        
+        // Show loading screen
+        function showLoadingScreen() {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.display = 'flex';
+            }
+        }
+        
+        // Initialize everything when ready
+        async function initializeAll() {
+            try {
+                console.log('Starting initialization...');
+                
+                // Wait for Phaser to load
+                await waitForPhaserLoad();
+                
+                // Hide loading screen
+                hideLoadingScreen();
+                
+                console.log('All systems ready!');
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                
+                // Show error message with details
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.innerHTML = `
+                        <div style="color: red; padding: 16px; text-align: center;">
+                            <p><strong>Failed to load game.</strong></p>
+                            <p>${(error && error.message) ? error.message : 'Unknown error'}</p>
+                            <p>Please check the browser console for more details, or try refreshing the page.</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Start initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeAll);
+        } else {
+            initializeAll();
+        }
+    </script>
+    
+    <!-- Load game scripts AFTER Phaser is confirmed loaded -->
+    <script>
+        // Only load scripts after Phaser is ready
+        // Load game scripts AFTER Phaser is confirmed loaded
+        waitForPhaserLoad().then(() => {
+            console.log('Loading game scripts...');
+            
+            // Helper function to load scripts sequentially
+            function loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    // Append cache-busting timestamp during development to avoid stale cached scripts
+                    const cacheBust = (new Date()).getTime();
+                    const sep = src.indexOf('?') === -1 ? '?' : '&';
+                    script.src = src + sep + 'cb=' + cacheBust;
+                    script.async = false; // Load in order
+                    
+                    script.onload = () => {
+                        console.log(`✓ Loaded: ${src}`);
+                        resolve();
+                    };
+                    
+                    script.onerror = (error) => {
+                        console.error(`✗ Failed to load: ${src}`, error);
+                        reject(new Error(`Failed to load ${src}`));
+                    };
+                    
+                    document.head.appendChild(script);
+                });
+            }
+            
+            // Load scripts in sequence
+            async function loadAllScripts() {
+                try {
+                    // Load collision debug system first
+                    console.log('Loading collision-debug.js...');
+                    window.CollisionDebugSystem = null; // Reset if it exists
+                    await loadScript('/js/collision-debug-new.js');
+                    
+                    // Debug check
+                    console.log('Script loaded. Checking for CollisionDebugSystem...');
+                    console.log('- window.CollisionDebugSystem:', typeof window.CollisionDebugSystem);
+                    
+                    if (typeof window.CollisionDebugSystem !== 'function') {
+                        throw new Error('CollisionDebugSystem was not properly exported to window');
+                    }
+                    
+                    // Load tutorial manager
+                    await loadScript('/js/tutorial-manager.js');
+                    console.log('TutorialManager available:', typeof window.TutorialManagers !== 'undefined');
+                    
+                    // Load main tutorial script last
+                    await loadScript('/js/tutorial.js');
+                    console.log('Tutorial script loaded successfully');
+                    
+                    console.log('All game scripts loaded successfully!');
+                } catch (error) {
+                    console.error('Failed to load game scripts:', error);
+                    
+                    // Show error to user
+                    const loadingScreen = document.getElementById('loading-screen');
+                    if (loadingScreen) {
+                        loadingScreen.innerHTML = `
+                            <p style="color: red; padding: 20px;">
+                                Failed to load game files.<br>
+                                Error: ${error.message}<br>
+                                Please check the browser console for details.
+                            </p>
+                        `;
+                    }
+                }
+            }
+            
+            loadAllScripts();
+        }).catch(error => {
+            console.error('Failed to initialize Phaser:', error);
+        });
+    </script>
+    
+    <!-- UI Initialization -->
+    <script>
+        // Track UI state
+        const uiState = {
+            isInitialized: false,
+            resizeTimeout: null
+        };
+        
+        // Initialize UI components
+        function initializeUI() {
+            if (uiState.isInitialized) return;
+            
+            console.log('Initializing UI components...');
+            
+            // Mobile menu toggle functionality
+            const navToggle = document.getElementById('navToggle');
+            const navMenu = document.getElementById('navMenu');
+            
+            if (navToggle && navMenu) {
+                // Toggle menu on button click
+                const toggleMenu = (e) => {
+                    if (e) {
+                        e.stopPropagation();
+                    }
+                    navMenu.classList.toggle('active');
+                };
+                
+                // Close menu when clicking outside
+                const closeMenuOnOutsideClick = (event) => {
+                    if (navMenu.classList.contains('active') && 
+                        !navMenu.contains(event.target) && 
+                        !navToggle.contains(event.target)) {
+                        navMenu.classList.remove('active');
+                    }
+                };
+                
+                // Add event listeners
+                navToggle.addEventListener('click', toggleMenu);
+                document.addEventListener('click', closeMenuOnOutsideClick);
+                
+                // Handle window resize for responsive UI
+                const handleResize = () => {
+                    clearTimeout(uiState.resizeTimeout);
+                    uiState.resizeTimeout = setTimeout(() => {
+                        if (window.innerWidth > 768) {
+                            navMenu.classList.remove('active');
+                        }
+                    }, 100);
+                };
+                
+                window.addEventListener('resize', handleResize);
+                
+                // Mark as initialized
+                uiState.isInitialized = true;
+                
+                console.log('UI initialized successfully');
+            }
+        }
+        
+        // Initialize UI when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeUI);
+        } else {
+            initializeUI();
+        }
+    </script>
+    
+    <!-- Emergency global Tab handler and logger to ensure visibility -->
+    <script>
+        (function(){
+            if (window.__tabLoggerInstalled) return; // avoid duplicates
+            window.__tabLoggerInstalled = true;
+            window.addEventListener('keydown', function(e) {
+                if (e.code !== 'Tab') return;
+                console.log('[GLOBAL] Tab detected');
+                const isFormField = document.activeElement && (
+                    document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.isContentEditable
+                );
+                if (!isFormField) e.preventDefault();
+                
+                const game = window.gameInstance;
+                if (!game || !game.scene) {
+                    console.log('[GLOBAL] gameInstance not ready');
+                    return;
+                }
+                // Prefer TutorialScene; otherwise use the first active scene
+                let scene = null;
+                try {
+                    scene = game.scene.getScene && game.scene.getScene('TutorialScene');
+                } catch (_) {}
+                if (!scene) {
+                    const running = (game.scene.getScenes && game.scene.getScenes(true)) || [];
+                    scene = running[0] || null;
+                }
+                if (!scene) {
+                    console.log('[GLOBAL] No active scene found');
+                    return;
+                }
+                if (!scene.debugManager) {
+                    console.log('[GLOBAL] Scene has no debugManager:', scene.scene && scene.scene.key);
+                    return;
+                }
+                window.gameState = window.gameState || (scene.gameState || {});
+                if (typeof gameState.debugMode === 'undefined') gameState.debugMode = false;
+                // Debounce: ignore toggles that happen within 150ms of a scene-level toggle
+                const lastGlobal = (typeof window !== 'undefined' && window.__lastDebugToggleTs) ? window.__lastDebugToggleTs : 0;
+                if ((scene._lastTabToggleTs && performance.now() - scene._lastTabToggleTs < 150) || (lastGlobal && performance.now() - lastGlobal < 150)) {
+                    console.log('[GLOBAL] Ignoring duplicate Tab toggle (debounced)');
+                    return;
+                }
+                // Use unified setter if available for diagnostics
+                if (typeof window !== 'undefined' && window.setDebugMode) {
+                    window.setDebugMode(undefined, '[GLOBAL] fallback handler');
+                } else {
+                    gameState.debugMode = !gameState.debugMode;
+                    console.log('[GLOBAL] Toggle debug ->', gameState.debugMode);
+                    try { console.warn('[GLOBAL] Toggle debug (warn) ->', gameState.debugMode); } catch (e) {}
+                }
+                try {
+                    scene.debugManager.toggleCollisionDebug();
+                    if (!gameState.debugMode) {
+                        scene.debugManager.clearCollisionGraphics();
+                    }
+                } catch (err) {
+                    console.error('[GLOBAL] Error toggling collision debug:', err);
+                }
+            }, false);
+        })();
+    </script>
+</body>
+</html>

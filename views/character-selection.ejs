@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Selection - CodeQuest</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="/js/music.js" defer></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">
+                    <img src="/images/logo.gif" alt="CodeQuest Logo" class="brand-logo">
+                    <span class="brand-text">CodeQuest</span>
+                </a>
+            </div>
+            
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/leaderboard" class="nav-link">Leaderboard</a>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/profile" class="nav-link">Profile</a>
+                <span class="nav-username">Welcome, <%= user.username %>!</span>
+                <form action="/auth/logout" method="POST" style="display: inline;">
+                    <button type="submit" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </form>
+            </div>
+            
+            <div class="nav-toggle" id="navToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Music Button -->
+    <button id="toggleMusic" title="Music On" aria-pressed="true" style="position:fixed;top:85px;left:15px;width:48px;height:48px;padding:0;margin:0;border:none;cursor:pointer;z-index:10000;background:rgba(0,0,0,0.3);border-radius:8px;font-size:28px;line-height:48px;text-align:center;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🔊</button>
+    <!-- Main Content -->
+    <main class="main-content">
+    <!-- Character Selection Section -->
+    <section class="character-selection">
+        <div class="container">
+            <div class="selection-header">
+                <h1 class="page-title">
+                    <i class="fas fa-user-friends"></i>
+                    Character Selection
+                </h1>
+                <p class="page-subtitle">Choose your JavaScript hero for epic coding adventures!</p>
+            </div>
+            
+            <div class="selection-content">
+                <div class="character-preview">
+                    <div class="pixel-character-display">
+                        <div class="character-info">
+                            <div class="profile-circle" id="profileCircle"></div>
+                            <h3 class="character-name"><%= user.username %></h3>
+                            <div class="character-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Level</span>
+                                    <span class="stat-value"><%= user.level %></span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Experience</span>
+                                    <span class="stat-value"><%= user.experience %> XP</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Coins</span>
+                                    <span class="stat-value"><%= user.pixelCoins %></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="selection-options">
+                    <form class="selection-form" action="/character-selection" method="POST" id="characterForm">
+                        <div class="option-group">
+                            <h4 class="option-title">
+                                <i class="fas fa-users"></i>
+                                Choose Your Character
+                            </h4>
+                            <div class="avatar-options">
+                                <div class="avatar-choice" data-avatar="/images/characters/player/Knight.png" data-type="knight">
+                                    <img src="/images/characters/player/Knight.png" alt="Knight" class="character-gif">
+                                    <span class="avatar-label">Knight</span>
+                                </div>
+                                <div class="avatar-choice" data-avatar="/images/characters/player/Mage.png" data-type="mage">
+                                    <img src="/images/characters/player/Mage.png" alt="Mage" class="character-gif">
+                                    <span class="avatar-label">Mage</span>
+                                </div>
+                                <div class="avatar-choice" data-avatar="/images/characters/player/Druid.png" data-type="druid">
+                                    <img src="/images/characters/player/Druid.png" alt="Druid" class="character-gif">
+                                    <span class="avatar-label">Druid</span>
+                                </div>
+                                <div class="avatar-choice" data-avatar="/images/characters/player/Paladin.png" data-type="paladin">
+                                    <img src="/images/characters/player/Paladin.png" alt="Paladin" class="character-gif">
+                                    <span class="avatar-label">Paladin</span>
+                                </div>
+                            </div>
+                            <input type="hidden" name="avatar" id="selectedAvatar" value="/images/characters/player/Knight.png">
+                            <input type="hidden" name="characterType" id="selectedCharacterType" value="knight">
+                        </div>
+                        
+                        
+                        <div class="selection-actions">
+                            <button type="submit" class="btn btn-primary btn-large" id="selectCharacterBtn">
+                                <i class="fas fa-flag-checkered"></i>
+                                START
+                            </button>
+                            <a href="/dashboard" class="btn btn-secondary btn-large">
+                                <i class="fas fa-arrow-left"></i>
+                                Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Hidden game canvas to load after selection -->
+                    <div id="map-section" style="display:none; margin-top: 24px; text-align:center;">
+                        <div style="display:inline-block; border:2px solid var(--gold); background: rgba(0,0,0,0.15); padding:6px;">
+                            <canvas id="gameCanvas" width="128" height="128" style="image-rendering: pixelated; display:block;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    </main>
+    
+    <style>
+        .character-selection {
+            padding: var(--spacing-xxl) 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+        
+        .selection-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xxl);
+        }
+        
+        .page-title {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+            background: linear-gradient(45deg, var(--gold), var(--silver));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+        
+        .selection-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: var(--spacing-xxl);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .character-preview {
+            background: var(--bg-card);
+            border: 3px solid var(--gold);
+            border-radius: 10px;
+            padding: var(--spacing-xl);
+            text-align: center;
+        }
+        
+        .avatar-display {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(45deg, var(--royal-blue), var(--royal-purple));
+            border: 4px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--spacing-lg);
+            font-size: 4rem;
+            overflow: hidden;
+        }
+        
+        .character-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        .character-stats {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-sm);
+            background: var(--bg-hover);
+            border-radius: 5px;
+        }
+        
+        .selection-options {
+            background: var(--bg-card);
+            border: 3px solid var(--silver);
+            border-radius: 10px;
+            padding: var(--spacing-xl);
+        }
+        
+        .option-group {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .option-title {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-lg);
+            color: var(--gold);
+        }
+        
+        .avatar-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-md);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .avatar-choice {
+            background: var(--bg-hover);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: var(--spacing-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .avatar-choice:hover {
+            border-color: var(--silver);
+            background: var(--bg-tertiary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(192, 192, 192, 0.3);
+        }
+        
+        .avatar-choice.active {
+            border: 3px solid var(--gold) !important;
+            background: var(--bg-tertiary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
+            position: relative;
+        }
+        
+        .avatar-choice.active::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            animation: activeGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes activeGlow {
+            0% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.8); }
+        }
+        
+        /* Profile circle styling */
+        .profile-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), var(--silver));
+            background-image: url('/images/characters/knight.jpg');
+            background-size: cover;
+            background-position: center;
+            border: 6px solid var(--gold);
+            margin: 0 auto var(--spacing-lg);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .profile-circle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
+        }
+
+        /* Character GIF styling */
+        .character-gif {
+            width: 60px;
+            height: 60px;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            display: block;
+            margin: 0 auto var(--spacing-sm);
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .main-character-gif {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            object-fit: contain;
+        }
+        
+        /* Hover effects for character selection */
+        .avatar-choice:hover .character-gif {
+            transform: scale(1.1);
+        }
+        
+        .avatar-choice.active .character-gif {
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 10px var(--gold));
+        }
+        
+        /* Success animations */
+        @keyframes selectSuccess {
+            0% { transform: translateY(-2px) scale(1.05); }
+            50% { transform: translateY(-8px) scale(1.15); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.8); }
+            100% { transform: translateY(-2px) scale(1.05); }
+        }
+        
+        @keyframes profileSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.8); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Sprite animations */
+        @keyframes spriteIdle {
+            0% { transform: translateY(0px); }
+            25% { transform: translateY(-2px); }
+            50% { transform: translateY(0px); }
+            75% { transform: translateY(-1px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes spriteIdleLarge {
+            0% { transform: translateY(0px) scale(1); }
+            25% { transform: translateY(-3px) scale(1.02); }
+            50% { transform: translateY(0px) scale(1); }
+            75% { transform: translateY(-1px) scale(1.01); }
+            100% { transform: translateY(0px) scale(1); }
+        }
+        
+        /* Hover animations for character choices */
+        .avatar-choice:hover .avatar-image {
+            animation: spriteHover 1s steps(6) infinite;
+        }
+        
+        @keyframes spriteHover {
+            0% { transform: translateY(0px) scale(1); }
+            16% { transform: translateY(-3px) scale(1.05); }
+            33% { transform: translateY(-1px) scale(1.02); }
+            50% { transform: translateY(-4px) scale(1.08); }
+            66% { transform: translateY(-2px) scale(1.03); }
+            83% { transform: translateY(-1px) scale(1.01); }
+            100% { transform: translateY(0px) scale(1); }
+        }
+        
+        /* Active character animation */
+        .avatar-choice.active .avatar-image {
+            animation: spriteActive 1.5s steps(8) infinite;
+        }
+        
+        @keyframes spriteActive {
+            0% { transform: translateY(0px) scale(1) rotate(0deg); }
+            12% { transform: translateY(-2px) scale(1.03) rotate(1deg); }
+            25% { transform: translateY(-4px) scale(1.06) rotate(-1deg); }
+            37% { transform: translateY(-3px) scale(1.04) rotate(2deg); }
+            50% { transform: translateY(-5px) scale(1.08) rotate(0deg); }
+            62% { transform: translateY(-3px) scale(1.04) rotate(-2deg); }
+            75% { transform: translateY(-2px) scale(1.02) rotate(1deg); }
+            87% { transform: translateY(-1px) scale(1.01) rotate(-1deg); }
+            100% { transform: translateY(0px) scale(1) rotate(0deg); }
+        }
+        
+        /* Breathing effect for large character display */
+        .avatar-display {
+            animation: breathe 3s ease-in-out infinite;
+            position: relative;
+        }
+        
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Add floating particles around selected character */
+        .avatar-display::before {
+            content: '✨';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 1.2rem;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+        
+        .avatar-display::after {
+            content: '⭐';
+            position: absolute;
+            bottom: -10px;
+            left: -10px;
+            font-size: 1rem;
+            animation: sparkle 2.5s ease-in-out infinite reverse;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { 
+                opacity: 0.3; 
+                transform: translateY(0px) rotate(0deg); 
+            }
+            50% { 
+                opacity: 1; 
+                transform: translateY(-5px) rotate(180deg); 
+            }
+        }
+        
+        /* Add glow effect to active character */
+        .avatar-choice.active {
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(212, 175, 55, 0.6); }
+            to { box-shadow: 0 0 30px rgba(212, 175, 55, 0.9); }
+        }
+        
+        /* Stagger animation delays for character grid */
+        .avatar-choice:nth-child(1) .avatar-image { animation-delay: 0s; }
+        .avatar-choice:nth-child(2) .avatar-image { animation-delay: 0.2s; }
+        .avatar-choice:nth-child(3) .avatar-image { animation-delay: 0.4s; }
+        .avatar-choice:nth-child(4) .avatar-image { animation-delay: 0.6s; }
+        .avatar-choice:nth-child(5) .avatar-image { animation-delay: 0.8s; }
+        .avatar-choice:nth-child(6) .avatar-image { animation-delay: 1s; }
+        .avatar-choice:nth-child(7) .avatar-image { animation-delay: 1.2s; }
+        .avatar-choice:nth-child(8) .avatar-image { animation-delay: 1.4s; }
+        
+        .style-options,
+        .goals-options {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+        
+        .style-choice,
+        .goal-choice {
+            background: var(--bg-hover);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: var(--spacing-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .style-choice:hover,
+        .goal-choice:hover {
+            border-color: var(--silver);
+            background: var(--bg-tertiary);
+        }
+        
+        .selection-actions {
+            display: flex;
+            gap: var(--spacing-lg);
+            justify-content: center;
+            margin-top: var(--spacing-xxl);
+        }
+        
+        @media (max-width: 768px) {
+            .selection-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .avatar-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .selection-actions {
+                flex-direction: column;
+            }
+        }
+        
+        /* Navigation styles */
+        .nav-username {
+            color: var(--gold);
+            font-weight: bold;
+            margin-right: var(--spacing-md);
+            font-size: 0.9rem;
+        }
+        
+        .logout-btn {
+            background: var(--crimson);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+        
+        /* Fix layout spacing */
+        .main-content {
+            margin-top: 80px; /* Account for fixed navbar */
+        }
+    </style>
+
+    <!-- Background Music -->
+    <audio id="backgroundMusic" loop>
+        <source src="/audio/music.mp3" type="audio/mpeg">
+        <source src="/audio/music.ogg" type="audio/ogg">
+    </audio>
+
+    <script src="/js/character-selection.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

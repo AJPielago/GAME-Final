@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuest Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        .navbar {
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: 40px;
+            box-sizing: border-box;
+        }
+        
+        .navbar h1 {
+            margin: 0;
+            font-size: 18px;
+            line-height: 20px;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: #2a2a2a;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        }
+        
+        #loading-screen h2 {
+            margin-bottom: 20px;
+            color: #FFD700;
+        }
+        
+        #loading-screen p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #FFD700;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px 0;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Prologue Video Overlay */
+        #prologue-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #prologue-video {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            outline: none;
+        }
+        
+        #prologue-video::-webkit-media-controls {
+            display: none !important;
+        }
+        
+        #prologue-video::-webkit-media-controls-enclosure {
+            display: none !important;
+        }
+        
+        #skip-prologue-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 215, 0, 0.9);
+            color: #000;
+            border: 2px solid #FFD700;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            transition: all 0.3s ease;
+            z-index: 2001;
+        }
+        
+        #skip-prologue-btn:hover {
+            background: #FFD700;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
+        }
+        
+        #skip-prologue-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>CodeQuest - Adventure Game</h1>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="loading-screen">
+        <h2>Loading CodeQuest...</h2>
+        <div class="spinner"></div>
+        <p>Preparing your adventure...</p>
+    </div>
+    
+    <!-- Prologue Video Overlay -->
+    <div id="prologue-overlay" style="display: none;">
+        <video id="prologue-video" autoplay>
+            <source src="/images/Prologue.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <button id="skip-prologue-btn">Skip</button>
+    </div>
+    
+    <!-- Load scripts in order: collision debug first, then map renderer, then game -->
+    <script src="/js/collision-debug-new.js"></script>
+    <script src="/js/map_render.js"></script>
+    <script src="/js/game.js"></script>
+</body>
+</html>

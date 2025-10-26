@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuest Leaderboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="/js/music.js" defer></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+            min-height: 100vh;
+        }
+        
+        /* Fix leaderboard table layout */
+        .leaderboard-header,
+        .leaderboard-entry {
+            display: grid;
+            grid-template-columns: 80px 2fr 100px 120px 120px 120px;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+        }
+        
+        .leaderboard-header {
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 2px solid #FFD700;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        
+        .leaderboard-entry {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .rank-column,
+        .level-column,
+        .xp-column,
+        .gold-column,
+        .badges-column {
+            text-align: center;
+        }
+        
+        .user-column {
+            text-align: left;
+        }
+        
+        /* Logout button styles */
+        .logout-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            border: 2px solid var(--crimson);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            white-space: nowrap;
+        }
+        
+        .logout-btn:hover {
+            background: var(--crimson);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px rgba(220, 20, 60, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">
+                    <img src="/images/logo.gif" alt="CodeQuest Logo" class="brand-logo">
+                    <span class="brand-text">CodeQuest</span>
+                </a>
+            </div>
+            
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/leaderboard" class="nav-link">Leaderboard</a>
+                <% if (user) { %>
+                    <a href="/dashboard" class="nav-link">Dashboard</a>
+                    <a href="/profile" class="nav-link">Profile</a>
+                    <% if (user.role === 'admin') { %>
+                    <a href="/admin/analytics" class="nav-link" style="color: #FFD700; font-weight: bold;">
+                        <i class="fas fa-chart-bar"></i> Admin
+                    </a>
+                    <% } %>
+                    <span class="nav-username">Welcome, <%= user.username %>!</span>
+                    <form action="/auth/logout" method="POST" style="display: inline;">
+                        <button type="submit" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </form>
+                <% } else { %>
+                    <a href="/auth/login" class="nav-link">Login</a>
+                    <a href="/auth/register" class="nav-link register-link">Join Quest</a>
+                <% } %>
+            </div>
+            
+            <div class="nav-toggle" id="navToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Music Button -->
+    <button id="toggleMusic" title="Music On" aria-pressed="true" style="position:fixed;top:85px;left:15px;width:48px;height:48px;padding:0;margin:0;border:none;cursor:pointer;z-index:10000;background:rgba(0,0,0,0.3);border-radius:8px;font-size:28px;line-height:48px;text-align:center;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🔊</button>
+
+    <section class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="welcome-section">
+                    <h1 class="dashboard-title">
+                        <i class="fas fa-crown"></i>
+                        CodeQuest Leaderboard
+                    </h1>
+                    <p class="dashboard-subtitle">See how you stack up against the coding elite</p>
+                </div>
+            </div>
+            
+            <!-- Top Performers -->
+            <div class="dashboard-card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-trophy"></i>
+                        Top Performers
+                    </h2>
+                </div>
+                    <div class="card-content">
+                        <div class="podium">
+                            <% if (topUsers && topUsers.length >= 3) { %>
+                                <div class="podium-item second">
+                                    <div class="podium-rank">2</div>
+                                    <div class="podium-user">
+                                        <div class="user-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="user-info">
+                                            <div class="username"><%= topUsers[1].username %></div>
+                                            <div class="user-level">Level <%= topUsers[1].level %></div>
+                                        </div>
+                                    </div>
+                                    <div class="podium-stats">
+                                        <div class="xp"><%= topUsers[1].experience %> XP</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="podium-item first">
+                                    <div class="podium-rank">1</div>
+                                    <div class="podium-user">
+                                        <div class="user-avatar winner">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <div class="user-info">
+                                            <div class="username"><%= topUsers[0].username %></div>
+                                            <div class="user-level">Level <%= topUsers[0].level %></div>
+                                        </div>
+                                    </div>
+                                    <div class="podium-stats">
+                                        <div class="xp"><%= topUsers[0].experience %> XP</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="podium-item third">
+                                    <div class="podium-rank">3</div>
+                                    <div class="podium-user">
+                                        <div class="user-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="user-info">
+                                            <div class="username"><%= topUsers[2].username %></div>
+                                            <div class="user-level">Level <%= topUsers[2].level %></div>
+                                        </div>
+                                    </div>
+                                    <div class="podium-stats">
+                                        <div class="xp"><%= topUsers[2].experience %> XP</div>
+                                    </div>
+                                </div>
+                            <% } else { %>
+                                <div class="no-podium">
+                                    <i class="fas fa-trophy"></i>
+                                    <p>Not enough users for podium yet. Be the first to join!</p>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Compact Filter Bar -->
+            <div class="dashboard-card" style="margin-bottom: 1.5rem;">
+                <div class="card-content">
+                    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-filter" style="color: #FFD700;"></i>
+                            <strong style="color: white;">Filters:</strong>
+                        </div>
+                        <div class="filter-group" style="margin: 0;">
+                            <label for="rankingFilter" class="filter-label" style="margin-right: 0.5rem;">Rank By:</label>
+                            <select id="rankingFilter" class="filter-select">
+                                <option value="xp" <%= rankBy === 'xp' ? 'selected' : '' %>>Experience (XP)</option>
+                                <option value="level" <%= rankBy === 'level' ? 'selected' : '' %>>Level</option>
+                                <option value="badges" <%= rankBy === 'badges' ? 'selected' : '' %>>Badges</option>
+                                <option value="gold" <%= rankBy === 'gold' ? 'selected' : '' %>>Gold</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="margin: 0;">
+                            <label for="timeFilter" class="filter-label" style="margin-right: 0.5rem;">Time Period:</label>
+                            <select id="timeFilter" class="filter-select">
+                                <option value="all" <%= timePeriod === 'all' ? 'selected' : '' %>>All Time</option>
+                                <option value="month" <%= timePeriod === 'month' ? 'selected' : '' %>>This Month</option>
+                                <option value="week" <%= timePeriod === 'week' ? 'selected' : '' %>>This Week</option>
+                                <option value="day" <%= timePeriod === 'day' ? 'selected' : '' %>>Today</option>
+                            </select>
+                        </div>
+                        <button onclick="applyFilters()" class="btn btn-primary" style="padding: 0.5rem 1.5rem;">
+                            <i class="fas fa-check"></i> Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Full Leaderboard -->
+            <div class="dashboard-card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-list"></i>
+                        Full Leaderboard
+                    </h2>
+                </div>
+                    <div class="card-content">
+                        <div class="leaderboard-list">
+                            <div class="leaderboard-header">
+                                <div class="rank-column">Rank</div>
+                                <div class="user-column">Player</div>
+                                <div class="level-column">Level</div>
+                                <div class="xp-column">XP</div>
+                                <div class="gold-column">Gold</div>
+                                <div class="badges-column">Badges</div>
+                            </div>
+                            
+                            <div class="leaderboard-entries">
+                                <% if (topUsers && topUsers.length > 0) { %>
+                                    <% topUsers.forEach(function(user, index) { %>
+                                        <div class="leaderboard-entry <%= user.username === locals.user?.username ? 'current-user' : '' %>">
+                                            <div class="rank-column">
+                                                <span class="rank-number"><%= index + 1 %></span>
+                                                <% if (index < 3) { %>
+                                                    <span class="rank-medal">
+                                                        <% if (index === 0) { %>
+                                                            <i class="fas fa-medal gold"></i>
+                                                        <% } else if (index === 1) { %>
+                                                            <i class="fas fa-medal silver"></i>
+                                                        <% } else { %>
+                                                            <i class="fas fa-medal bronze"></i>
+                                                        <% } %>
+                                                    </span>
+                                                <% } %>
+                                            </div>
+                                            <div class="user-column">
+                                                <div class="user-info">
+                                                    <div class="user-avatar">
+                                                        <i class="fas fa-user"></i>
+                                                    </div>
+                                                    <div class="user-details">
+                                                        <div class="username"><%= user.username %></div>
+                                                        <% if (user.preferredLanguage) { %>
+                                                            <div class="user-language">
+                                                                <i class="fab fa-<%= user.preferredLanguage === 'javascript' ? 'js-square' : user.preferredLanguage %>"></i>
+                                                                <%= user.preferredLanguage.charAt(0).toUpperCase() + user.preferredLanguage.slice(1) %>
+                                                            </div>
+                                                        <% } %>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="level-column">
+                                                <div class="level-badge">
+                                                    <span class="level-number"><%= user.level %></span>
+                                                </div>
+                                            </div>
+                                            <div class="xp-column">
+                                                <div class="xp-amount"><%= user.experience.toLocaleString() %></div>
+                                            </div>
+                                            <div class="gold-column">
+                                                <div class="gold-amount">
+                                                    <i class="fas fa-coins"></i>
+                                                    <span><%= user.pixelCoins ? user.pixelCoins.toLocaleString() : 0 %></span>
+                                                </div>
+                                            </div>
+                                            <div class="badges-column">
+                                                <div class="badges-count">
+                                                    <i class="fas fa-medal"></i>
+                                                    <span><%= user.badges ? user.badges.length : 0 %></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <div class="no-entries">
+                                        <i class="fas fa-users"></i>
+                                        <p>No users found. Be the first to join the leaderboard!</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-actions">
+                <div class="action-grid">
+                    <a href="/dashboard" class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Dashboard</h3>
+                            <p>Return to your dashboard</p>
+                        </div>
+                    </a>
+                    
+                    <a href="/profile" class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Your Profile</h3>
+                            <p>View your personal stats</p>
+                        </div>
+                    </a>
+                    
+                    <button class="action-card" onclick="refreshLeaderboard()">
+                        <div class="action-icon">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Refresh</h3>
+                            <p>Update the leaderboard</p>
+                        </div>
+                    </button>
+                    
+                    <a href="/" class="action-card">
+                        <div class="action-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Home</h3>
+                            <p>Go back to homepage</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Background Music -->
+    <audio id="backgroundMusic" loop>
+        <source src="/audio/music.mp3" type="audio/mpeg">
+        <source src="/audio/music.ogg" type="audio/ogg">
+    </audio>
+
+    <script src="/js/main.js"></script>
+    <script>
+        function refreshLeaderboard() {
+            location.reload();
+        }
+        
+        function applyFilters() {
+            const rankBy = document.getElementById('rankingFilter').value;
+            const timePeriod = document.getElementById('timeFilter').value;
+            
+            console.log('Applying filters:', { rankBy, timePeriod });
+            
+            // Reload page with query parameters
+            window.location.href = `/leaderboard?rankBy=${rankBy}&timePeriod=${timePeriod}`;
+        }
+    </script>
+</body>
+</html>

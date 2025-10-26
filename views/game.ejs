@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Load Font Awesome locally to avoid CSP issues -->
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <!-- Load Phaser from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
+        
+        /* Ensure the game container takes full viewport height minus navbar */
+        .main-content {
+            position: absolute;
+            top: 60px; /* Height of the navbar */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+        
+        /* Game wrapper styling */
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Ensure it's above the body but below the navbar */
+        }
+        
+        /* Phaser canvas styling */
+        #game-wrapper canvas {
+            display: block;
+            position: relative;
+            z-index: 1;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+        }
+        
+        /* Navbar styles */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 10px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+        }
+        
+        .brand-link {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .brand-logo {
+            height: 40px;
+            margin-right: 10px;
+        }
+        
+        .brand-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 5px 10px;
+        }
+        
+        .nav-link:hover {
+            color: #4CAF50;
+        }
+        
+        .nav-username {
+            color: white;
+            margin: 0 10px;
+        }
+        
+        .logout-btn {
+            background: none;
+            border: 1px solid white;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .main-content {
+            position: absolute;
+            top: 60px; /* Height of navbar */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background-color: #2c3e50;
+        }
+        
+        /* Game container styles */
+        #game-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #2c3e50;
+        }
+        
+        /* Ensure canvas is visible */
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #2c3e50;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        /* Loading screen styles */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Prologue Video Overlay */
+        #prologue-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #prologue-video {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            outline: none;
+        }
+        
+        #prologue-video::-webkit-media-controls {
+            display: none !important;
+        }
+        
+        #prologue-video::-webkit-media-controls-enclosure {
+            display: none !important;
+        }
+        
+        #skip-prologue-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 215, 0, 0.9);
+            color: #000;
+            border: 2px solid #FFD700;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            transition: all 0.3s ease;
+            z-index: 2001;
+        }
+        
+        #skip-prologue-btn:hover {
+            background: #FFD700;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
+        }
+        
+        #skip-prologue-btn:active {
+            transform: scale(0.95);
+        }
+        
+        #sound-prologue-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            border: 2px solid #FFF;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 2001;
+            line-height: 1;
+        }
+        
+        #sound-prologue-btn:hover {
+            background: #FFF;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.5);
+        }
+        
+        #sound-prologue-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                right: 0;
+                background-color: rgba(0, 0, 0, 0.9);
+                flex-direction: column;
+                padding: 20px 0;
+            }
+            
+            .nav-menu.active {
+                display: flex;
+            }
+            
+            .nav-toggle {
+                display: flex; /* Show toggle button on mobile */
+                flex-direction: column;
+                justify-content: space-between;
+                width: 30px;
+                height: 21px;
+                cursor: pointer;
+                padding: 0;
+                background: none;
+                border: none;
+                outline: none;
+            }
+            
+            .bar {
+                height: 3px;
+                width: 100%;
+                background-color: white;
+                border-radius: 3px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .nav-toggle {
+                display: none; /* Hide toggle button on desktop */
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">
+                    <img src="/images/logo.gif" alt="CodeQuest Logo" class="brand-logo">
+                    <span class="brand-text">CodeQuest</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/profile" class="nav-link">Profile</a>
+                <% if (user.role === 'admin') { %>
+                <a href="/admin/analytics" class="nav-link" style="color: #FFD700; font-weight: bold;">
+                    <i class="fas fa-chart-bar"></i> Admin
+                </a>
+                <% } %>
+                <span class="nav-username">Welcome, <%= user.username %>!</span>
+                <form action="/auth/logout" method="POST" style="display: inline;">
+                    <button type="submit" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </form>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Loading screen -->
+        <div id="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Loading game...</p>
+        </div>
+        
+        <!-- Prologue Video Overlay -->
+        <div id="prologue-overlay" style="display: none;">
+            <video id="prologue-video" autoplay muted>
+                <source src="/images/Prologue.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <button id="sound-prologue-btn" title="Toggle Sound">🔇</button>
+            <button id="skip-prologue-btn">Skip</button>
+        </div>
+        
+        <!-- Game container -->
+        <div id="game-wrapper">
+            <!-- Canvas for the main game -->
+            <canvas id="gameCanvas"></canvas>
+        </div>
+    </main>
+
+    <audio id="backgroundMusic" loop>
+        <source src="/audio/music.mp3" type="audio/mpeg">
+        <source src="/audio/music.ogg" type="audio/ogg">
+    </audio>
+    
+    <audio id="gameMusic" loop>
+        <source src="/audio/game-music.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="questCompleteSound">
+        <source src="/audio/Quest-Complete.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Game scripts -->
+    <!-- Pass character data to game FIRST -->
+    <script>
+        window.gameData = {
+            user: {
+                id: '<%= user._id %>',
+                username: '<%= user.username %>',
+                characterType: '<%= user.characterType || "knight" %>',
+                characterAvatar: '<%= user.characterAvatar || "/images/characters/player/Knight.png" %>',
+                role: '<%= user.role || "player" %>'
+            }
+        };
+        console.log('✅ window.gameData initialized:', window.gameData);
+    </script>
+    
+    <!-- Load map rendering module FIRST -->
+    <script src="/js/map_render.js?v=<%= Date.now() %>"></script>
+    
+    <!-- Load collision debug system -->
+    <script src="/js/collision-debug-new.js?v=<%= Date.now() %>"></script>
+    
+    <!-- Load main game system AFTER gameData and map module are set -->
+    <script src="/js/game.js?v=<%= Date.now() %>"></script>
+    
+    <script>
+        
+        // Initialize main game when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing main game...');
+            // The game.js file contains the main game logic
+            // and will automatically start the game
+        });
+    </script>
+    
+    <!-- UI Initialization -->
+    <script>
+        // Track UI state
+        const uiState = {
+            isInitialized: false,
+            resizeTimeout: null
+        };
+        
+        // Initialize UI components
+        function initializeUI() {
+            if (uiState.isInitialized) return;
+            
+            console.log('Initializing UI components...');
+            
+            // Mobile menu toggle functionality
+            const navToggle = document.getElementById('navToggle');
+            const navMenu = document.getElementById('navMenu');
+            
+            if (navToggle && navMenu) {
+                // Toggle menu on button click
+                const toggleMenu = (e) => {
+                    if (e) {
+                        e.stopPropagation();
+                    }
+                    navMenu.classList.toggle('active');
+                };
+                
+                // Close menu when clicking outside
+                const closeMenuOnOutsideClick = (event) => {
+                    if (navMenu.classList.contains('active') && 
+                        !navMenu.contains(event.target) && 
+                        !navToggle.contains(event.target)) {
+                        navMenu.classList.remove('active');
+                    }
+                };
+                
+                // Add event listeners
+                navToggle.addEventListener('click', toggleMenu);
+                document.addEventListener('click', closeMenuOnOutsideClick);
+                
+                // Handle window resize for responsive UI
+                const handleResize = () => {
+                    clearTimeout(uiState.resizeTimeout);
+                    uiState.resizeTimeout = setTimeout(() => {
+                        if (window.innerWidth > 768) {
+                            navMenu.classList.remove('active');
+                        }
+                    }, 100);
+                };
+                
+                window.addEventListener('resize', handleResize);
+                
+                // Mark as initialized
+                uiState.isInitialized = true;
+                
+                console.log('UI initialized successfully');
+            }
+        }
+        
+        // Initialize UI when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeUI);
+        } else {
+            initializeUI();
+        }
+    </script>
+</body>
+</html>

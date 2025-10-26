@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - CodeQuest</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="/js/music.js" defer></script>
+    <script src="/js/auth-utils.js" defer></script>
+</head>
+<body class="<%= locals.bodyClass || '' %>">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">
+                    <img src="/images/logo.gif" alt="CodeQuest Logo" class="brand-logo">
+                    <span class="brand-text">CodeQuest</span>
+                </a>
+            </div>
+            
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/leaderboard" class="nav-link">Leaderboard</a>
+                <% if (user) { %>
+                    <a href="/dashboard" class="nav-link">Dashboard</a>
+                    <a href="/profile" class="nav-link">Profile</a>
+                    <% if (user.role === 'admin') { %>
+                    <a href="/admin/analytics" class="nav-link" style="color: #FFD700; font-weight: bold;">
+                        <i class="fas fa-chart-bar"></i> Admin
+                    </a>
+                    <% } %>
+                    <div class="nav-user">
+                        <span class="user-welcome">Welcome, <span class="username"><%= user.username %></span></span>
+                        <a href="/auth/logout" class="logout-btn" onclick="if(window.AuthUtils) window.AuthUtils.clearOnLogout(); return true;" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: inherit; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #f8f9fa; transition: background-color 0.2s;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </a>
+                    </div>
+                <% } else { %>
+                    <a href="/auth/login" class="nav-link">Login</a>
+                    <a href="/auth/register" class="nav-link register-link">Join Quest</a>
+                <% } %>
+            </div>
+            
+            <div class="nav-toggle" id="navToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <% if (success) { %>
+        <div class="flash-message success">
+            <i class="fas fa-check-circle"></i>
+            <%= success %>
+            <button class="flash-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    <% } %>
+    
+    <% if (error) { %>
+        <div class="flash-message error">
+            <i class="fas fa-exclamation-circle"></i>
+            <%= error %>
+            <button class="flash-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    <% } %>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <%- body %>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CodeQuest</h3>
+                    <p>Transforming programming education through AI-driven gamification and interactive learning.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-discord"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Features</h4>
+                    <ul>
+                        <li><a href="#">RPG Progression</a></li>
+                        <li><a href="#">Code Challenges</a></li>
+                        <li><a href="#">Skill Trees</a></li>
+                        <li><a href="#">Achievements</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Community</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 CodeQuest. All rights reserved. Made with ❤️ for developers.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Music Button -->
+    <button id="toggleMusic" title="Music On" aria-pressed="true" style="position:fixed;top:85px;left:15px;width:48px;height:48px;padding:0;margin:0;border:none;cursor:pointer;z-index:10000;background:rgba(0,0,0,0.3);border-radius:8px;font-size:28px;line-height:48px;text-align:center;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🔊</button>
+
+    <!-- Background Music -->
+    <audio id="backgroundMusic" loop>
+        <source src="/audio/music.mp3" type="audio/mpeg">
+        <source src="/audio/music.ogg" type="audio/ogg">
+    </audio>
+
+    <!-- Sound Effects -->
+    <audio id="buttonSound">
+        <source src="/audio/button-click.mp3" type="audio/mpeg">
+        <source src="/audio/button-click.ogg" type="audio/ogg">
+    </audio>
+    
+    <audio id="levelUpSound">
+        <source src="/audio/level-up.mp3" type="audio/mpeg">
+        <source src="/audio/level-up.ogg" type="audio/ogg">
+    </audio>
+
+    <audio id="achievementSound">
+        <source src="/audio/achievement.mp3" type="audio/mpeg">
+        <source src="/audio/achievement.ogg" type="audio/ogg">
+    </audio>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>
+

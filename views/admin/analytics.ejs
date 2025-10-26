@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | CodeQuest</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <!-- Note: EJS template syntax in inline styles may trigger CSS linter warnings - these are false positives -->
+  <style>
+    body {
+      background: var(--bg-primary);
+      background-image: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      min-height: 100vh;
+      font-family: var(--font-fantasy);
+      color: var(--text-primary);
+    }
+    .admin-container {
+      max-width: 1400px;
+      margin: 100px auto 2rem auto;
+      padding: 0 1rem;
+    }
+    .admin-header {
+      background: rgba(20, 30, 50, 0.95);
+      border: 3px solid var(--gold);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+    .admin-header h1 {
+      color: var(--gold);
+      font-weight: 900;
+      text-shadow: 3px 3px 0px #000000;
+      margin-bottom: 0.5rem;
+    }
+    .admin-header p {
+      color: var(--text-secondary) !important;
+      font-size: 1.1rem;
+    }
+    .text-muted {
+      color: var(--text-secondary) !important;
+    }
+    .text-capitalize {
+      color: var(--text-primary) !important;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 2px solid var(--silver);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-md);
+      transition: all var(--transition-normal);
+      height: 100%;
+    }
+    .row {
+      margin-bottom: 1rem;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--gold);
+      box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3);
+    }
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 2px 2px 0px #000000;
+    }
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 0.5rem;
+    }
+    .users-table {
+      background: rgba(20, 30, 50, 0.95);
+      border: 3px solid var(--gold);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+    .users-table h3 {
+      color: var(--gold);
+      font-weight: 900;
+      text-shadow: 2px 2px 0px #000000;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    .table {
+      margin: 0;
+      color: var(--text-primary) !important;
+      background: transparent !important;
+    }
+    .table-light {
+      background: transparent !important;
+    }
+    .table thead {
+      background: rgba(212, 175, 55, 0.2) !important;
+      border-bottom: 2px solid var(--gold);
+    }
+    .table thead th {
+      color: var(--gold) !important;
+      font-weight: 700;
+      border: none !important;
+      padding: 1rem;
+      background: transparent !important;
+    }
+    .table tbody tr {
+      border-bottom: 1px solid rgba(192, 192, 192, 0.2);
+      transition: background var(--transition-fast);
+      background: transparent !important;
+    }
+    .table tbody tr:hover {
+      background: rgba(212, 175, 55, 0.15) !important;
+    }
+    .table tbody td {
+      border: none !important;
+      padding: 1rem;
+      color: var(--text-primary) !important;
+      background: transparent !important;
+    }
+    .table tbody td strong {
+      color: var(--gold);
+    }
+    .badge-role {
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-admin {
+      background: var(--crimson);
+      color: white;
+      border: 1px solid #ff1744;
+      box-shadow: 0 0 10px rgba(220, 20, 60, 0.3);
+    }
+    .badge-player {
+      background: var(--forest-green);
+      color: white;
+      border: 1px solid #32cd32;
+      box-shadow: 0 0 10px rgba(34, 139, 34, 0.3);
+    }
+    .badge-active {
+      background: var(--forest-green);
+      color: white;
+      border: 1px solid #32cd32;
+    }
+    .badge-inactive {
+      background: var(--iron);
+      color: white;
+      border: 1px solid #a9a9a9;
+    }
+    .distribution-card {
+      background: var(--bg-card);
+      border: 2px solid var(--silver);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-md);
+    }
+    .distribution-card h4 {
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-shadow: 2px 2px 0px #000000;
+    }
+    .distribution-card span {
+      color: var(--text-primary);
+    }
+    .progress {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--silver);
+      border-radius: 10px;
+      height: 25px;
+    }
+    .progress-bar {
+      background: linear-gradient(90deg, var(--gold), var(--flame-orange));
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    }
+    .bg-success {
+      background: linear-gradient(90deg, var(--forest-green), #32cd32) !important;
+    }
+    .back-link {
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--bg-card);
+      border: 2px solid var(--gold);
+      border-radius: 8px;
+      transition: all var(--transition-normal);
+      text-shadow: 1px 1px 0px #000000;
+    }
+    .back-link:hover {
+      background: rgba(212, 175, 55, 0.2);
+      color: var(--gold);
+      transform: translateX(-4px);
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    }
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    
+    /* Override navbar spacing to match other pages */
+    .navbar {
+      padding: 1rem 2rem;
+    }
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1400px;
+      margin: 0 auto;
+      gap: 2rem;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-right: 2rem;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      transition: transform var(--transition-normal);
+    }
+    .brand-link:hover {
+      transform: scale(1.05);
+    }
+    .brand-logo {
+      height: 50px;
+      width: auto;
+    }
+    .brand-text {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 2px 2px 0px #000000;
+    }
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .nav-link {
+      padding: 0.5rem 1rem;
+      white-space: nowrap;
+    }
+    .nav-username {
+      color: var(--text-secondary);
+      margin: 0 0.5rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .logout-btn {
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 2px solid var(--crimson);
+      color: var(--text-primary);
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      transition: all var(--transition-normal);
+      white-space: nowrap;
+    }
+    .logout-btn:hover {
+      background: var(--crimson);
+      color: white;
+      transform: translateY(-2px);
+    }
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+    .bar {
+      width: 25px;
+      height: 3px;
+      background: var(--gold);
+      border-radius: 2px;
+      transition: all var(--transition-normal);
+    }
+    @media (max-width: 768px) {
+      .navbar {
+        padding: 1rem;
+      }
+      .nav-menu {
+        position: fixed;
+        top: 70px;
+        left: -100%;
+        width: 100%;
+        background: rgba(10, 15, 26, 0.98);
+        border-bottom: 3px solid var(--gold);
+        flex-direction: column;
+        padding: 2rem;
+        transition: left var(--transition-normal);
+        z-index: 999;
+      }
+      .nav-menu.active {
+        left: 0;
+      }
+      .nav-toggle {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <a href="/" class="brand-link">
+          <img src="/images/logo.gif" alt="CodeQuest Logo" class="brand-logo">
+          <span class="brand-text">CodeQuest</span>
+        </a>
+      </div>
+      
+      <div class="nav-menu" id="navMenu">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/leaderboard" class="nav-link">Leaderboard</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/profile" class="nav-link">Profile</a>
+        <% if (user && user.role === 'admin') { %>
+        <a href="/admin/analytics" class="nav-link" style="color: #FFD700; font-weight: bold;">
+          <i class="fas fa-chart-bar"></i> Admin
+        </a>
+        <% } %>
+        <% if (user) { %>
+        <span class="nav-username">Welcome, <%= user.username %>!</span>
+        <a href="/auth/logout" class="logout-btn" onclick="if(window.AuthUtils) window.AuthUtils.clearOnLogout(); return true;">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </a>
+        <% } %>
+      </div>
+      
+      <div class="nav-toggle" id="navToggle">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="admin-container">
+
+    <div class="admin-header">
+      <h1><i class="bi bi-bar-chart-line"></i> Admin Analytics Dashboard</h1>
+      <p class="text-muted mb-0">Comprehensive overview of user statistics and activity</p>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row">
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.totalUsers %></div>
+          <div class="stat-label"><i class="bi bi-people"></i> Total Users</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.activeUsers %></div>
+          <div class="stat-label"><i class="bi bi-person-check"></i> Active Users</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.adminUsers %></div>
+          <div class="stat-label"><i class="bi bi-shield-check"></i> Admins</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number"><%= stats.playerUsers %></div>
+          <div class="stat-label"><i class="bi bi-controller"></i> Players</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Stats -->
+    <div class="row">
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number" style="color: #28a745;"><%= stats.avgLevel %></div>
+          <div class="stat-label"><i class="bi bi-star"></i> Avg Level</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number" style="color: #ffc107;"><%= stats.avgPixelCoins %></div>
+          <div class="stat-label"><i class="bi bi-coin"></i> Avg Coins</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number" style="color: #dc3545;"><%= stats.totalMonstersDefeated %></div>
+          <div class="stat-label"><i class="bi bi-trophy"></i> Monsters Defeated</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-number" style="color: #17a2b8;"><%= stats.totalQuestsCompleted %></div>
+          <div class="stat-label"><i class="bi bi-check-circle"></i> Quests Completed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Distributions -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="distribution-card">
+          <h4><i class="bi bi-person-badge"></i> Character Type Distribution</h4>
+          <% for (let [type, count] of Object.entries(distributions.characterTypes)) { %>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-capitalize"><%= type %></span>
+                <span><%= count %> (<%= ((count/stats.totalUsers)*100).toFixed(1) %>%)</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-primary" role="progressbar" 
+                     style="width: <%= (count/stats.totalUsers)*100 %>%"></div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="distribution-card">
+          <h4><i class="bi bi-code-slash"></i> JavaScript Level Distribution</h4>
+          <% for (let [level, count] of Object.entries(distributions.jsLevels)) { %>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-capitalize"><%= level %></span>
+                <span><%= count %> (<%= ((count/stats.totalUsers)*100).toFixed(1) %>%)</span>
+              </div>
+              <div class="progress">
+                <div class="progress-bar bg-success" role="progressbar" 
+                     style="width: <%= (count/stats.totalUsers)*100 %>%"></div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="users-table">
+      <h3 class="mb-4"><i class="bi bi-table"></i> User List</h3>
+      <div class="table-wrapper">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>In-Game Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Level</th>
+              <th>Experience</th>
+              <th>Coins</th>
+              <th>Character</th>
+              <th>JS Level</th>
+              <th>Quests</th>
+              <th>Monsters</th>
+              <th>Play Time (min)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach(user => { %>
+              <tr>
+                <td><strong><%= user.username %></strong></td>
+                <td><%= user.email %></td>
+                <td><%= user.inGameName || '-' %></td>
+                <td>
+                  <span class="badge-role <%= user.role === 'admin' ? 'badge-admin' : 'badge-player' %>">
+                    <%= user.role || 'player' %>
+                  </span>
+                </td>
+                <td>
+                  <span class="badge-role <%= user.isActive ? 'badge-active' : 'badge-inactive' %>">
+                    <%= user.isActive ? 'Active' : 'Inactive' %>
+                  </span>
+                </td>
+                <td><%= user.level || 1 %></td>
+                <td><%= user.experience || 0 %></td>
+                <td><%= user.pixelCoins || 0 %></td>
+                <td class="text-capitalize"><%= user.characterType || 'knight' %></td>
+                <td class="text-capitalize"><%= user.jsLevel || 'beginner' %></td>
+                <td><%= user.gameStats?.questsCompleted || 0 %></td>
+                <td><%= user.gameStats?.monstersDefeated || 0 %></td>
+                <td><%= user.gameStats?.playTime || 0 %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/auth-utils.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

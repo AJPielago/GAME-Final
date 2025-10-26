@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+</head>
+<body>
+    <h1>Testing JavaScript Loading</h1>
+    <div id="status"></div>
+    
+    <script>
+        console.log('Basic HTML test - this should appear in console');
+        document.getElementById('status').innerHTML = 'JavaScript is working!';
+        
+        // Test if we can load our files
+    fetch('/js/tutorial.js?cb=' + (new Date()).getTime())
+            .then(response => {
+                console.log('tutorial.js fetch response:', response.status);
+                document.getElementById('status').innerHTML += '<br>tutorial.js accessible: ' + response.ok;
+            })
+            .catch(error => {
+                console.error('Failed to fetch tutorial.js:', error);
+                document.getElementById('status').innerHTML += '<br>tutorial.js ERROR: ' + error;
+            });
+    </script>
+</body>
+</html>

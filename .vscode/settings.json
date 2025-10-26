@@ -1,0 +1,17 @@
+{
+  "files.associations": {
+    "*.ejs": "ejs"
+  },
+  "css.validate": true,
+  "css.lint.validProperties": [
+    "background-clip"
+  ],
+  "emmet.includeLanguages": {
+    "ejs": "html"
+  },
+  "[ejs]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "html.validate.styles": false,
+  "css.customData": []
+}
