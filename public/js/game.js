@@ -8,6 +8,7 @@
   ctx.imageSmoothingEnabled = false;
 
   // Map rendering is now handled by MapRenderer module (map_render.js)
+  const MapRenderer = window.MapRenderer;
   
   // Game Music Manager
   const gameMusicManager = {
@@ -785,21 +786,7 @@
         { text: "Amazing, {name}! You've mastered advanced array methods. Let's test your knowledge!" }
       ]
     },
-    'quest11': { // Quest 11 - Async JavaScript
-      title: 'Asynchronous JavaScript Lesson',
-      npcImage: '/images/Q11.jpg',
-      parts: [
-        { text: "Welcome, {name}! Today we'll explore asynchronous JavaScript - handling tasks that take time!" },
-        { text: "JavaScript is single-threaded but can handle async operations like fetching data or timers.", code: "// Synchronous (blocking)\nconsole.log('First');\nconsole.log('Second');\n\n// Asynchronous (non-blocking)\nsetTimeout(() => {\n  console.log('After 1 second');\n}, 1000);" },
-        { text: "Callbacks are functions passed to other functions to run later.", code: "function fetchData(callback) {\n  setTimeout(() => {\n    callback('Data loaded!');\n  }, 1000);\n}\n\nfetchData((data) => {\n  console.log(data);  // 'Data loaded!' after 1s\n});" },
-        { text: "Promises represent future values - they can be pending, fulfilled, or rejected.", code: "const promise = new Promise((resolve, reject) => {\n  setTimeout(() => {\n    resolve('Success!');\n  }, 1000);\n});\n\npromise.then(result => console.log(result));" },
-        { text: "Chain promises with .then() for sequential async operations.", code: "fetch('https://api.example.com/data')\n  .then(response => response.json())\n  .then(data => console.log(data))\n  .catch(error => console.error(error));" },
-        { text: "Async/await makes asynchronous code look synchronous and easier to read!", code: "async function getData() {\n  try {\n    const response = await fetch('/api/data');\n    const data = await response.json();\n    console.log(data);\n  } catch (error) {\n    console.error(error);\n  }\n}" },
-        { text: "Use Promise.all() to wait for multiple promises to complete.", code: "const promise1 = fetch('/api/users');\nconst promise2 = fetch('/api/posts');\n\nPromise.all([promise1, promise2])\n  .then(([users, posts]) => {\n    console.log('Both loaded!');\n  });" },
-        { text: "setTimeout() and setInterval() are common async functions.", code: "// Run once after delay\nsetTimeout(() => {\n  console.log('Hello!');\n}, 2000);\n\n// Run repeatedly\nconst interval = setInterval(() => {\n  console.log('Tick');\n}, 1000);\n\nclearInterval(interval);  // Stop it" },
-        { text: "Fantastic, {name}! You now understand asynchronous JavaScript. Ready for the final quiz?" }
-      ]
-    }
+    // Quest 11 removed - uses custom dialogue instead
   };
   
   // Quest quizzes system
@@ -1018,28 +1005,8 @@
           correctAnswer: 2
         }
       ]
-    },
-    'quest11': {
-      title: 'Async JavaScript Quiz',
-      npcImage: '/images/Q11.jpg',
-      questions: [
-        {
-          question: "What keyword is used to define an asynchronous function?",
-          options: ["async", "await", "promise", "defer"],
-          correctAnswer: 0
-        },
-        {
-          question: "What does 'await' do in an async function?",
-          options: ["Stops the program", "Waits for a promise to resolve", "Creates a new promise", "Delays execution"],
-          correctAnswer: 1
-        },
-        {
-          question: "Which method waits for multiple promises to complete?",
-          options: ["Promise.wait()", "Promise.all()", "Promise.multiple()", "Promise.join()"],
-          correctAnswer: 1
-        }
-      ]
     }
+    // Quest 11 quiz removed - uses custom dialogue instead
   };
   
   // Quest coding challenges (for Quest 5 onwards)
@@ -1449,8 +1416,12 @@
         
         const quest = window.gameMapData.quests.find(q => q.id === gameState.currentQuest);
         if (quest) {
-            // Check if quest is already completed
-            if (gameState.completedQuests.has(quest.id)) {
+            // Check if this is Quest 11 (special handling - always allow interaction)
+            const questKey = (quest.name || '').toLowerCase().replace(/\s+/g, '');
+            const isQuest11 = questKey === 'quest11';
+            
+            // Check if quest is already completed (except Quest 11)
+            if (!isQuest11 && gameState.completedQuests.has(quest.id)) {
                 this.showQuestCompletedMessage(quest);
                 return;
             }
@@ -1703,6 +1674,12 @@
             return;
         }
         
+        // Special handling for Quest 11 - Monster Battle
+        if (questKey === 'quest11') {
+            this.showQuest11MonsterPrompt(quest);
+            return;
+        }
+        
         // Check if quest has a lesson (by quest name)
         if (questLessons[questKey]) {
             this.startQuestLesson(quest);
@@ -1735,6 +1712,175 @@
         
         // Hide quest prompt
         this.hideQuestPrompt();
+    }
+    
+    // Show Quest 11 Monster Battle Prompt
+    showQuest11MonsterPrompt(quest) {
+        // Check if quest is already completed
+        const isCompleted = gameState.completedQuests.has(quest.id);
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+        
+        // Create prompt box
+        const promptBox = document.createElement('div');
+        promptBox.style.cssText = `
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 3px solid #FF6B6B;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(255, 107, 107, 0.5);
+        `;
+        
+        // Different messages based on completion status
+        if (isCompleted) {
+            promptBox.innerHTML = `
+                <div style="color: #FFD700; font-size: 24px; font-weight: bold; margin-bottom: 20px;">
+                    🗺️ BATTLE ARENA MAP ✅
+                </div>
+                <div style="color: #ffffff; font-size: 18px; line-height: 1.6; margin-bottom: 25px;">
+                    You've already explored this map!<br><br>
+                    Would you like to return to the battle arena?
+                </div>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+                    <button id="quest11YesBtn" style="
+                        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+                        color: white;
+                        border: none;
+                        padding: 15px 40px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+                        transition: transform 0.2s;
+                    ">
+                        🗺️ YES, RETURN TO MAP
+                    </button>
+                    <button id="quest11NoBtn" style="
+                        background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+                        color: white;
+                        border: none;
+                        padding: 15px 40px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(149, 165, 166, 0.4);
+                        transition: transform 0.2s;
+                    ">
+                        ❌ NOT NOW
+                    </button>
+                </div>
+            `;
+        } else {
+            promptBox.innerHTML = `
+                <div style="color: #FF6B6B; font-size: 24px; font-weight: bold; margin-bottom: 20px;">
+                    ⚔️ MONSTER BATTLE CHALLENGE ⚔️
+                </div>
+                <div style="color: #ffffff; font-size: 18px; line-height: 1.6; margin-bottom: 25px;">
+                    Brave warrior! The time has come to test your skills in combat.<br><br>
+                    Dangerous monsters await you in the battle arena.<br>
+                    Do you have the courage to face them?
+                </div>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+                    <button id="quest11YesBtn" style="
+                        background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+                        color: white;
+                        border: none;
+                        padding: 15px 40px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+                        transition: transform 0.2s;
+                    ">
+                        ⚔️ YES, I'M READY!
+                    </button>
+                    <button id="quest11NoBtn" style="
+                        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+                        color: white;
+                        border: none;
+                        padding: 15px 40px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+                        transition: transform 0.2s;
+                    ">
+                        ❌ NOT YET
+                    </button>
+                </div>
+            `;
+        }
+        
+        overlay.appendChild(promptBox);
+        document.body.appendChild(overlay);
+        
+        // Add hover effects
+        const yesBtn = document.getElementById('quest11YesBtn');
+        const noBtn = document.getElementById('quest11NoBtn');
+        
+        yesBtn.addEventListener('mouseenter', () => {
+            yesBtn.style.transform = 'scale(1.05)';
+        });
+        yesBtn.addEventListener('mouseleave', () => {
+            yesBtn.style.transform = 'scale(1)';
+        });
+        
+        noBtn.addEventListener('mouseenter', () => {
+            noBtn.style.transform = 'scale(1.05)';
+        });
+        noBtn.addEventListener('mouseleave', () => {
+            noBtn.style.transform = 'scale(1)';
+        });
+        
+        // Handle Yes button - Proceed to map3
+        yesBtn.addEventListener('click', async () => {
+            document.body.removeChild(overlay);
+            
+            // Only mark as completed and award rewards if not already completed
+            if (!isCompleted) {
+                gameState.activeQuests.add(quest.id);
+                gameState.completedQuests.add(quest.id);
+                
+                // Award XP and coins only on first completion
+                await playerProfile.awardExperience(100, `Accepted Monster Battle Challenge`);
+                await playerProfile.awardPixelCoins(50, `Quest 11 Reward`);
+                
+                this.showQuestNotification(`🗡️ Entering Battle Arena! Good luck!`, '#FF6B6B');
+            } else {
+                this.showQuestNotification(`🗺️ Returning to Battle Arena...`, '#3498db');
+            }
+            
+            // Redirect to map3
+            setTimeout(() => {
+                console.log('🗺️ Loading Battle Arena Map (map3)...');
+                window.location.href = '/map3.html';
+            }, 1500);
+        });
+        
+        // Handle No button - Close prompt
+        noBtn.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            this.hideQuestPrompt();
+        });
     }
     
     // Check quest prerequisites
@@ -2892,7 +3038,20 @@
             document.body.appendChild(prompt);
         }
         
-        if (isCompleted) {
+        // Check if this is Quest 11 (special handling)
+        const questKey = (quest.name || '').toLowerCase().replace(/\s+/g, '');
+        const isQuest11 = questKey === 'quest11';
+        
+        if (isQuest11) {
+            // Quest 11 always shows interaction prompt (even when completed)
+            if (isCompleted) {
+                prompt.innerHTML = `<span style="background: #3498db; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold;">E</span> Return to Battle Arena`;
+                prompt.style.background = 'rgba(52, 152, 219, 0.9)';
+            } else {
+                prompt.innerHTML = `<span style="background: #FF6B6B; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold;">E</span> Enter Battle Arena`;
+                prompt.style.background = 'rgba(255, 107, 107, 0.9)';
+            }
+        } else if (isCompleted) {
             prompt.innerHTML = `<span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold;">✓</span> Quest already finished`;
             prompt.style.background = 'rgba(39, 174, 96, 0.9)';
         } else {
@@ -3439,13 +3598,14 @@ class AnimationManager {
       } else {
         // Fallback to old method if debug-logger.js not loaded
         gameState.debugMode = !gameState.debugMode;
+        gameState.collisionDebug = gameState.debugMode; // Sync collisionDebug with debugMode
         console.log('Debug mode:', gameState.debugMode ? 'ON' : 'OFF');
+        console.log('Collision debug:', gameState.collisionDebug ? 'ON' : 'OFF');
         debugLogOnce = !gameState.debugMode; // Reset log flag when turning off
         
         // Toggle collision debug visualization
         if (collisionDebugSystem) {
           collisionDebugSystem.toggle();
-          console.log('Collision debug:', collisionDebugSystem.enabled ? 'ON' : 'OFF');
         }
       }
     }
@@ -3462,17 +3622,17 @@ class AnimationManager {
       } else {
         // Fallback to old method if debug-logger.js not loaded
         gameState.debugMode = !gameState.debugMode;
+        gameState.collisionDebug = gameState.debugMode; // Sync collisionDebug with debugMode
         console.log('Debug mode (TAB):', gameState.debugMode ? 'ON' : 'OFF');
+        console.log('Collision debug (TAB):', gameState.collisionDebug ? 'ON' : 'OFF');
         debugLogOnce = !gameState.debugMode; // Reset log flag when turning off
         
         // Toggle collision debug visualization using the new DebugManager
         if (debugManager) {
           debugManager.toggleCollisionDebug();
-          console.log('Collision debug (TAB):', gameState.debugMode ? 'ON' : 'OFF');
         } else if (collisionDebugSystem) {
           // Fallback to old system if DebugManager not available
           collisionDebugSystem.toggle();
-          console.log('Collision debug (TAB fallback):', collisionDebugSystem.enabled ? 'ON' : 'OFF');
         }
       }
     }
@@ -4046,7 +4206,9 @@ class AnimationManager {
     
     const tileW = mapData.tilewidth || 16;
     const tileH = mapData.tileheight || 16;
-    const excludedLayers = ['ground', 'people'];
+    
+    // Define non-collision layers (layers that should NOT show collision boxes)
+    const nonCollisionLayers = ['floor', 'floor2', 'floor3', 'ground', 'background', 'people'];
     
     // Calculate visible tile range for culling
     const startTileX = Math.floor(camera.x / tileW) - 1;
@@ -4061,8 +4223,9 @@ class AnimationManager {
     for (const layer of mapData.layers) {
       if (layer.type !== 'tilelayer') continue;
       
+      // Skip non-collision layers (floor/ground layers)
       const layerName = layer.name.toLowerCase();
-      if (excludedLayers.includes(layerName)) {
+      if (nonCollisionLayers.some(name => layerName.includes(name))) {
         continue;
       }
       

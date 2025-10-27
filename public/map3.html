@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monster Battle Arena - CodeQuest</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 10px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: 40px;
+            box-sizing: border-box;
+            border-bottom: 3px solid #FF6B6B;
+        }
+        
+        .navbar h1 {
+            margin: 0;
+            font-size: 18px;
+            line-height: 20px;
+            color: #FF6B6B;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: #1a1a1a;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        }
+        
+        #loading-screen h2 {
+            margin-bottom: 20px;
+            color: #FF6B6B;
+            font-size: 32px;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+        
+        #loading-screen p {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #FFFFFF;
+        }
+        
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #FF6B6B;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px 0;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .battle-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>⚔️ Monster Battle Arena - Quest 11</h1>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="loading-screen">
+        <div class="battle-icon">⚔️</div>
+        <h2>Loading Battle Arena...</h2>
+        <div class="spinner"></div>
+        <p>Preparing monsters and weapons...</p>
+        <p style="color: #FF6B6B; font-weight: bold; margin-top: 20px;">Get ready for battle!</p>
+    </div>
+    
+    <!-- Load map3 rendering module FIRST -->
+    <script src="/js/map3_render.js"></script>
+    
+    <!-- Load collision debug system -->
+    <script src="/js/collision-debug-new.js"></script>
+    
+    <!-- Load map3 game system (simplified version without quests/lessons) -->
+    <script src="/js/game_map3.js"></script>
+</body>
+</html>

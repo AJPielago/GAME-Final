@@ -1,14 +1,14 @@
 /**
- * Map Rendering Module
- * Handles all map-related operations: loading, rendering, and collision detection
- * Extracted from game.js to improve maintainability
+ * Map3 Rendering Module
+ * Handles map rendering for Quest 11 battle arena (try22.tmj)
+ * Based on map_render.js but loads try22.tmj instead of Map1.tmj
  */
 
 (function(window) {
   'use strict';
 
-  // Map configuration
-  const MAP_SRC = '/images/map/Map1.tmj';
+  // Map configuration - CHANGED TO LOAD try22.tmj
+  const MAP_SRC = '/images/map3/try22.tmj';
   
   // Map data storage
   let mapData = null;
@@ -50,7 +50,7 @@
       // Add cache-busting to ensure fresh TMJ file is loaded
       const cacheBuster = '?t=' + Date.now();
       const mapUrl = MAP_SRC + cacheBuster;
-      console.log('🔄 Loading map from:', mapUrl);
+      console.log('🔄 Loading Map3 from:', mapUrl);
       const response = await fetch(mapUrl, { 
         cache: 'no-cache',
         headers: {
@@ -67,7 +67,7 @@
       
       // Parse animation data from tilesets
       parseTileAnimations(mapData.tilesets);
-      console.log('📦 Map data loaded:', {
+      console.log('📦 Map3 data loaded:', {
         infinite: mapData.infinite,
         tilewidth: mapData.tilewidth,
         tileheight: mapData.tileheight,
@@ -111,14 +111,15 @@
             reject(new Error(`Failed to load tileset image: ${tileset.image}`));
           };
 
-          img.src = `/images/map/${tileset.image.split('/').pop()}`;
+          // CHANGED: Load from /images/map3/ directory
+          img.src = `/images/map3/${tileset.image.split('/').pop()}`;
         });
       });
 
       // Wait for all tilesets to load
       await Promise.all(tilesetPromises);
       
-      console.log('✅ Map loading complete:', {
+      console.log('✅ Map3 loading complete:', {
         tilesets: Object.keys(tilesetImages).length,
         layers: mapData.layers?.length || 0,
         mapDataExists: !!mapData
@@ -126,7 +127,7 @@
       
       return true;
     } catch (error) {
-      console.error('❌ Map loading failed:', error);
+      console.error('❌ Map3 loading failed:', error);
       throw error;
     }
   }
@@ -230,12 +231,22 @@
     const tileW = mapData.tilewidth || 16;
     const tileH = mapData.tileheight || tileW;
     
+    // Define non-collision layers - same as in tileAt function
+    const nonCollisionLayers = ['floor', 'floor2', 'floor3', 'ground', 'background'];
+    
     // Draw collision tiles in red
     ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
     
     for (const layer of mapData.layers || []) {
       if (layer.type !== 'tilelayer') continue;
       
+      // Skip non-collision layers (floor layers)
+      const layerName = (layer.name || '').toLowerCase();
+      if (nonCollisionLayers.some(name => layerName.includes(name))) {
+        continue;
+      }
+      
+      // Draw collision tiles for this layer
       forEachTileInLayer(layer, (tileId, tx, ty) => {
         if (!tileId) return; // Skip empty tiles
         
@@ -261,15 +272,19 @@
   function tileAt(tx, ty) {
     if (!mapData) return 0;
     
-    // Define collision layers - these layers should block movement
-    const collisionLayers = ['fences', 'trees', 'houses', 'collision', 'walls', 'obstacles'];
+    // Define non-collision layers - these layers should NOT block movement
+    const nonCollisionLayers = ['floor', 'floor2', 'floor3', 'ground', 'background'];
     
     for (const layer of mapData.layers || []) {
       if (layer.type !== 'tilelayer') continue;
       
-      // Only check collision for specific layers
-      if (!collisionLayers.includes(layer.name)) continue;
+      // Skip non-collision layers (floor layers)
+      const layerName = (layer.name || '').toLowerCase();
+      if (nonCollisionLayers.some(name => layerName.includes(name))) {
+        continue;
+      }
       
+      // All other layers have collision
       if (layer.chunks) {
         for (const c of layer.chunks) {
           if (tx >= c.x && tx < c.x + c.width && ty >= c.y && ty < c.y + c.height) {
@@ -492,43 +507,31 @@
     const tw = mapData.tilewidth || 16;
     const th = mapData.tileheight || tw;
 
-    // Look specifically for "spawn" layer with spawn point (ID 284)
+    // Look for spawn/spawnpoint layer
     for (const layer of mapData.layers || []) {
       const layerName = layer.name.toLowerCase();
-      if (layer.type === 'objectgroup' && layerName === 'spawn') {
-        console.log('🎯 Found spawn layer with', layer.objects?.length || 0, 'objects');
-        for (const obj of layer.objects || []) {
-          // Look specifically for object with name "spawn point" and ID 284
-          const objName = (obj.name || '').toLowerCase();
-          
-          if (obj.id === 284 && objName === 'spawn point') {
-            const spawnPos = { x: obj.x, y: obj.y };
-            console.log('✅ Found spawn point (ID 284, name "spawn point") in spawn layer:', {
-              id: obj.id,
-              name: obj.name,
-              type: obj.type,
-              position: spawnPos,
-              objectSize: { width: obj.width || 0, height: obj.height || 0 }
-            });
-            
-            // Use raw TMJ coordinates
-            console.log('🎯 Returning spawn position:', spawnPos);
-            return spawnPos;
-          }
-        }
+      if (layer.type === 'objectgroup' && (layerName === 'spawn' || layerName === 'spawnpoint')) {
+        console.log('🎯 Found spawn layer:', layer.name, 'with', layer.objects?.length || 0, 'objects');
         
-        // Fallback: use any object in spawn layer
+        // Use the first object in the spawn layer
         if (layer.objects && layer.objects.length > 0) {
-          const firstObj = layer.objects[0];
-          console.log('🔍 Using first object in spawn layer:', {
-            id: firstObj.id,
-            name: firstObj.name,
-            position: { x: firstObj.x, y: firstObj.y }
+          const spawnObj = layer.objects[0];
+          const spawnPos = { x: spawnObj.x, y: spawnObj.y };
+          console.log('✅ Found spawn point in layer:', {
+            layer: layer.name,
+            id: spawnObj.id,
+            name: spawnObj.name || '(unnamed)',
+            type: spawnObj.type || '(no type)',
+            position: spawnPos,
+            objectSize: { width: spawnObj.width || 0, height: spawnObj.height || 0 }
           });
-          return { x: firstObj.x, y: firstObj.y };
+          
+          // Use raw TMJ coordinates
+          console.log('🎯 Returning spawn position:', spawnPos);
+          return spawnPos;
         }
         
-        console.warn('⚠️ Spawn layer found but no spawn point object detected');
+        console.warn('⚠️ Spawn layer found but no objects in it');
       }
     }
 
@@ -703,22 +706,6 @@
       }
     }
     
-    // Add quest7 if it doesn't exist (for Arrays in JavaScript quest)
-    const quest7Exists = quests.some(q => q.name && q.name.toLowerCase().includes('arrays in javascript'));
-    if (!quest7Exists) {
-      quests.push({
-        id: 700, // Use unique ID that won't conflict
-        name: 'Arrays in JavaScript',
-        x: 550,
-        y: 350,
-        width: 32,
-        height: 32,
-        gid: null,
-        dialogue: null
-      });
-      console.log('✅ Added Quest 7 (Arrays in JavaScript) to map data');
-    }
-    
     // Store in global variables for game use
     window.gameMapData = {
       npcs,
@@ -743,8 +730,8 @@
     return tilesetImages;
   }
 
-  // Export public API
-  window.MapRenderer = {
+  // Export public API as Map3Renderer
+  window.Map3Renderer = {
     loadMap,
     drawMap,
     drawCollisionDebug,
@@ -757,6 +744,6 @@
     forEachTileInLayer
   };
 
-  console.log('✅ MapRenderer module loaded');
+  console.log('✅ Map3Renderer module loaded');
 
 })(window);
