@@ -543,7 +543,7 @@ router.get('/game-page', requireAuth, async (req, res) => {
   }
 });
 
-// Game route (protected) - Clears character data on browser refresh, but allows normal game access after prologue
+// Game route (protected) - Renders the game normally (browser refresh just reloads current state)
 router.get('/game', requireAuth, async (req, res) => {
   try {
     console.log('Game route accessed by user ID:', req.session.userId);
@@ -560,7 +560,7 @@ router.get('/game', requireAuth, async (req, res) => {
     // Check if coming from prologue - if so, allow normal game access
     if (req.query.from === 'prologue') {
       console.log('Coming from prologue - allowing normal game access');
-      
+
       // Check if user has selected a character
       if (!user.characterType || !user.characterAvatar) {
         console.log('No character selected after prologue - redirecting to character selection');
@@ -570,7 +570,7 @@ router.get('/game', requireAuth, async (req, res) => {
       console.log('Rendering game for user:', user.username);
       console.log('👤 User character type:', user.characterType);
       console.log('🖼️ User character avatar:', user.characterAvatar);
-      
+
       return res.render('game', {
         title: 'CodeQuest - Game',
         user: user,
@@ -586,20 +586,30 @@ router.get('/game', requireAuth, async (req, res) => {
       });
     }
 
-    // Browser refresh detected - clear character data for full sequence
-    console.log('Browser refresh detected - clearing character data for full sequence');
-    if (user.characterType || user.characterAvatar) {
-      user.characterType = null;
-      user.characterAvatar = null;
-      user.codingStyle = null;
-      user.learningGoals = [];
-      await user.save();
-      console.log('✅ Character data cleared for browser refresh');
+    // Browser refresh or direct access - check if user has character selected
+    console.log('Browser refresh or direct access');
+    if (!user.characterType || !user.characterAvatar) {
+      console.log('No character selected - redirecting to character selection');
+      return res.redirect('/character-selection');
     }
 
-    console.log('Redirecting to character selection for full sequence...');
-    return res.redirect('/character-selection');
-    
+    console.log('Rendering game for user:', user.username);
+    console.log('👤 User character type:', user.characterType);
+    console.log('🖼️ User character avatar:', user.characterAvatar);
+
+    res.render('game', {
+      title: 'CodeQuest - Game',
+      user: user,
+      _debug: {
+        userId: user._id,
+        timestamp: new Date().toISOString(),
+        nodeEnv: process.env.NODE_ENV || 'development',
+        scripts: [
+          '/js/game.js',
+          '/js/map.js'
+        ]
+      }
+    });
   } catch (error) {
     console.error('Game route error:', error);
     req.session.error = 'Unable to load game. Please try again.';
@@ -607,7 +617,7 @@ router.get('/game', requireAuth, async (req, res) => {
   }
 });
 
-// Get user profile (protected) - MODIFIED: Always return fresh Level 1 data
+// Get user profile (protected) - Returns actual saved user data
 router.get('/api/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('-password');
@@ -615,19 +625,22 @@ router.get('/api/profile', requireAuth, async (req, res) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    // ALWAYS return fresh Level 1 data - ignore database values
-    console.log('🔄 Profile API: Returning fresh Level 1 data (database values ignored)');
-    
+    // Return actual saved data from database
+    console.log('📊 Profile API: Returning saved user data');
+    console.log('💰 User coins:', user.pixelCoins);
+    console.log('⭐ User level:', user.level);
+    console.log('🎖️ User badges:', user.badges?.length || 0);
+
     res.json({
       success: true,
       playerName: user.username || 'Unknown Player',
-      inGameName: null,
-      pixelCoins: 0,
-      experience: 0,
-      level: 1,
-      badges: [],
-      achievements: [],
-      gameStats: {
+      inGameName: user.inGameName || null,
+      pixelCoins: user.pixelCoins || 0,
+      experience: user.experience || 0,
+      level: user.level || 1,
+      badges: user.badges || [],
+      achievements: user.achievements || [],
+      gameStats: user.gameStats || {
         monstersDefeated: 0,
         questsCompleted: 0,
         codeLinesWritten: 0,
@@ -836,7 +849,7 @@ router.post('/game/save', requireAuth, async (req, res) => {
   }
 });
 
-// Load game state (protected) - DISABLED: Always return no save data for fresh start
+// Load game state (protected) - Returns actual saved game state
 router.get('/game/load', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('-password');
@@ -844,9 +857,70 @@ router.get('/game/load', requireAuth, async (req, res) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    // ALWAYS return no save data - force fresh start every time
-    console.log('🔄 Auto-load disabled - returning no save data for fresh start');
-    return res.json({ success: false, message: 'No save data found (auto-load disabled)' });
+    // Check if user has saved game data
+    if (!user.gameState && !user.extendedGameState) {
+      console.log('📭 No save data found for user:', user.username);
+      return res.json({ success: false, message: 'No save data found' });
+    }
+
+    // Return saved game state
+    console.log('📥 Loading game state for user:', user.username);
+    console.log('📍 Player position:', user.gameState);
+    console.log('🎮 Extended state:', user.extendedGameState ? 'Available' : 'Not available');
+
+    // Format response to match what game.js expects
+    const extendedState = user.extendedGameState || {
+      collectedRewards: [],
+      activeQuests: [],
+      completedQuests: [],
+      interactedNPCs: [],
+      questProgress: {},
+      playerDirection: 'right',
+      currentAnimation: 'idle'
+    };
+
+    res.json({
+      success: true,
+      data: {
+        playerName: user.username,
+        inGameName: user.inGameName,
+        pixelCoins: user.pixelCoins || 0,
+        experience: user.experience || 0,
+        level: user.level || 1,
+        badges: user.badges || [],
+        achievements: user.achievements || [],
+        gameStats: user.gameStats || {
+          monstersDefeated: 0,
+          questsCompleted: 0,
+          codeLinesWritten: 0,
+          playTime: 0
+        },
+        playerPosition: user.gameState || { x: 32, y: 32 },
+        collectedRewards: extendedState.collectedRewards || [],
+        activeQuests: extendedState.activeQuests || [],
+        completedQuests: extendedState.completedQuests || [],
+        interactedNPCs: extendedState.interactedNPCs || [],
+        questProgress: extendedState.questProgress || {},
+        playerDirection: extendedState.playerDirection || 'right',
+        currentAnimation: extendedState.currentAnimation || 'idle'
+      },
+      // Also include for game_map3.js compatibility
+      extendedGameState: extendedState,
+      playerProfile: {
+        playerName: user.username,
+        inGameName: user.inGameName,
+        pixelCoins: user.pixelCoins || 0,
+        experience: user.experience || 0,
+        level: user.level || 1,
+        badges: user.badges || [],
+        gameStats: user.gameStats || {
+          monstersDefeated: 0,
+          questsCompleted: 0,
+          codeLinesWritten: 0,
+          playTime: 0
+        }
+      }
+    });
   } catch (error) {
     console.error('Load game error:', error);
     res.status(500).json({ success: false, message: 'Failed to load game' });
@@ -1155,6 +1229,39 @@ router.get('/api/collision-overrides/load', async (req, res) => {
     console.error('❌ Failed to load collision overrides:', error);
     res.status(500).json({ success: false, message: 'Failed to load collision overrides' });
   }
+});
+
+// Map3 route (protected) - Renders the monster battle arena with current user data
+router.get('/map3', requireAuth, async (req, res) => {
+  try {
+    console.log('🗺️ Map3 route accessed by user ID:', req.session.userId);
+
+    const user = await User.findById(req.session.userId).select('-password');
+    if (!user) {
+      console.log('❌ User not found for ID:', req.session.userId);
+      req.session.destroy();
+      req.session.error = 'User not found. Please log in again.';
+      return res.redirect('/auth/login');
+    }
+
+    console.log('✅ Rendering map3 for user:', user.username, '- Level:', user.level, '- Coins:', user.pixelCoins);
+
+    res.render('map3', {
+      title: 'CodeQuest - Monster Battle Arena',
+      user: user
+    });
+    
+    console.log('✅ Map3 rendered successfully for', user.username);
+  } catch (error) {
+    console.error('❌ Map3 route error:', error);
+    res.status(500).send('Internal server error');
+  }
+});
+
+// Test route to see if routes are working at all
+router.get('/test-map3', requireAuth, async (req, res) => {
+  console.log('🧪 TEST ROUTE CALLED!');
+  res.send('Test route is working! Routes are functional.');
 });
 
 module.exports = router;

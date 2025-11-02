@@ -747,7 +747,7 @@
 
     // Calculate center position
     const menuWidth = 450; // Wider to accommodate timestamps
-    const menuHeight = 400; // Increased height for more options
+    const menuHeight = 430; // Increased height for more options (including refresh)
     const centerX = canvas.width / 2 - menuWidth / 2;
     const centerY = canvas.height / 2 - menuHeight / 2;
 
@@ -795,6 +795,8 @@
       
       options.push(saveText, loadText);
     }
+    // Add Refresh option
+    options.push({ text: '🔄 Refresh Game', color: '#00CED1' });
     // Add New Game option
     options.push({ text: '🆕 New Game', color: '#FF6B6B' });
     // Add exit option
@@ -2301,7 +2303,7 @@
             // Redirect to map3
             setTimeout(() => {
                 console.log('🗺️ Loading Battle Arena Map (map3)...');
-                window.location.href = '/map3.html';
+                window.location.href = '/map3';
             }, 1500);
         });
         
@@ -2962,10 +2964,13 @@
             case '6': // Load Slot 3
                 loadGameFromSlot(3);
                 break;
-            case '7': // New Game
+            case '7': // Refresh Game
+                this.refreshGame();
+                break;
+            case '8': // New Game
                 this.startNewGame();
                 break;
-            case '8': // Exit Game
+            case '9': // Exit Game
                 console.log('🚪 Exit Game - returning to main map');
                 window.location.href = '/';
                 break;
@@ -3258,6 +3263,76 @@
         }).catch(err => {
             console.error('❌ Failed to save new game state:', err);
             console.log('🔄 Redirecting to /character-selection anyway for full new game sequence...');
+            // Redirect to /character-selection which will trigger the full sequence: character selection -> prologue -> game
+            window.location.href = '/character-selection';
+        });
+    }
+    
+    refreshGame() {
+        console.log('🔄 Refreshing game...');
+        
+        console.log('✅ User confirmed refresh - proceeding...');
+        
+        // Clear character selection from session
+        sessionStorage.removeItem('selectedAvatar');
+        sessionStorage.removeItem('selectedCharacterType');
+        
+        // Reset player profile to initial state
+        const resetData = {
+            playerName: playerProfile.playerName, // Keep the player's name
+            inGameName: playerProfile.inGameName, // Keep the in-game name
+            pixelCoins: 0,
+            experience: 0,
+            level: 1,
+            badges: [],
+            achievements: [],
+            gameStats: {
+                monstersDefeated: 0,
+                questsCompleted: 0,
+                codeLinesWritten: 0,
+                playTime: 0
+            },
+            playerPosition: { x: -521, y: 975.666666666667 }, // Spawn point from map1.tmj
+            collectedRewards: [],
+            activeQuests: [],
+            completedQuests: [],
+            interactedNPCs: [],
+            questProgress: {},
+            playerDirection: 'right',
+            currentAnimation: 'idle',
+            selectedAvatar: null, // Clear character sprite
+            selectedCharacterType: null,
+            // Clear character data for complete refresh
+            characterAvatar: null,
+            characterType: null,
+            codingStyle: null,
+            learningGoals: []
+        };
+        
+        console.log('💾 Saving reset data to server...');
+        console.log('📦 Reset data being sent:', resetData);
+        
+        // Save the reset state to server
+        fetch('/game/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(resetData)
+        }).then(response => {
+            console.log('📡 Server response status:', response.status);
+            return response.json();
+        }).then(result => {
+            console.log('📡 Server response:', result);
+            if (result.success) {
+                console.log('✅ Refresh game state saved to server');
+            }
+            console.log('🔄 Redirecting to /character-selection for full refresh sequence...');
+            // Redirect to /character-selection which will trigger the full sequence: character selection -> prologue -> game
+            window.location.href = '/character-selection';
+        }).catch(err => {
+            console.error('❌ Failed to save refresh game state:', err);
+            console.log('🔄 Redirecting to /character-selection anyway for full refresh sequence...');
             // Redirect to /character-selection which will trigger the full sequence: character selection -> prologue -> game
             window.location.href = '/character-selection';
         });
@@ -5747,7 +5822,7 @@ class AnimationManager {
 
     // Calculate center position
     const menuWidth = 450; // Wider to accommodate timestamps
-    const menuHeight = 400; // Increased height for more options
+    const menuHeight = 430; // Increased height for more options (including refresh)
     const centerX = canvas.width / 2 - menuWidth / 2;
     const centerY = canvas.height / 2 - menuHeight / 2;
 
@@ -5795,6 +5870,8 @@ class AnimationManager {
       
       options.push(saveText, loadText);
     }
+    // Add Refresh option
+    options.push({ text: '🔄 Refresh Game', color: '#00CED1' });
     // Add New Game option
     options.push({ text: '🆕 New Game', color: '#FF6B6B' });
     
@@ -6211,6 +6288,7 @@ class AnimationManager {
         const saveData = result.data;
         console.log('✅ Found saved game data:', saveData);
         console.log('📍 Received playerPosition:', saveData.playerPosition);
+        console.log('📋 Received completedQuests:', saveData.completedQuests);
         
         // Restore player profile data
         if (saveData.playerName) playerProfile.playerName = saveData.playerName;
@@ -6279,8 +6357,10 @@ class AnimationManager {
           coins: playerProfile.pixelCoins,
           position: { x: player.x, y: player.y },
           rewards: gameState.collectedRewards.size,
-          quests: gameState.activeQuests.size
+          activeQuests: gameState.activeQuests.size,
+          completedQuests: gameState.completedQuests.size
         });
+        console.log('📋 Completed quests loaded:', Array.from(gameState.completedQuests));
         
         return true; // Successfully loaded saved game
       } catch (error) {

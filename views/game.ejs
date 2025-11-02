@@ -382,6 +382,10 @@
                 username: '<%= user.username %>',
                 characterType: '<%= user.characterType || "knight" %>',
                 characterAvatar: '<%= user.characterAvatar || "/images/characters/player/Knight.png" %>',
+                level: <%= user.level || 1 %>,
+                experience: <%= user.experience || 0 %>,
+                pixelCoins: <%= user.pixelCoins || 0 %>,
+                badges: <%- JSON.stringify(user.badges || []) %>,
                 role: '<%= user.role || "player" %>'
             }
         };
@@ -401,6 +405,78 @@
     <script src="/js/game.js?v=<%= Date.now() %>"></script>
     
     <script>
+        // Quest completion handler for main game
+        window.onQuestComplete = async function(questId, questTitle) {
+            console.log(`🎉 Quest completed: ${questId} - ${questTitle}`);
+            
+            try {
+                // Get current progress from window.gameData
+                const currentData = window.gameData?.user || {};
+                
+                // Prepare save payload with updated progress
+                const savePayload = {
+                    playerName: currentData.username || 'Unknown Player',
+                    inGameName: currentData.inGameName || null,
+                    pixelCoins: (currentData.pixelCoins || 0) + 10, // Award 10 coins
+                    experience: (currentData.experience || 0) + 25, // Award 25 XP
+                    level: currentData.level || 1,
+                    badges: currentData.badges || [],
+                    achievements: [],
+                    gameStats: {
+                        monstersDefeated: 0,
+                        questsCompleted: (currentData.questsCompleted || 0) + 1,
+                        codeLinesWritten: currentData.codeLinesWritten || 0,
+                        playTime: currentData.playTime || 0
+                    },
+                    collectedRewards: [],
+                    activeQuests: [],
+                    completedQuests: [],
+                    interactedNPCs: [],
+                    questProgress: {},
+                    playerDirection: 'right',
+                    currentAnimation: 'idle',
+                    savedAt: new Date().toISOString()
+                };
+                
+                // Calculate level based on experience
+                let newLevel = 1;
+                let xpNeeded = 150; // Base XP for level 2
+                while (savePayload.experience >= xpNeeded) {
+                    newLevel++;
+                    xpNeeded = 75 * (newLevel - 1) * newLevel; // Cumulative XP formula
+                }
+                savePayload.level = Math.max(savePayload.level, newLevel);
+                
+                // Save to server
+                const response = await fetch('/game/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(savePayload)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Failed to save quest completion:', errorText);
+                } else {
+                    const result = await response.json();
+                    console.log('✅ Quest completion saved successfully');
+                    
+                    // Update window.gameData with new values
+                    if (window.gameData?.user) {
+                        window.gameData.user.pixelCoins = savePayload.pixelCoins;
+                        window.gameData.user.experience = savePayload.experience;
+                        window.gameData.user.level = savePayload.level;
+                        window.gameData.user.questsCompleted = savePayload.gameStats.questsCompleted;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error saving quest completion:', error);
+            }
+        };
+    </script>
         
         // Initialize main game when page loads
         document.addEventListener('DOMContentLoaded', function() {

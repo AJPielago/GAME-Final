@@ -12,6 +12,8 @@
   console.log('🎮 Map3 Game System Initializing...');
 
   // Ensure gameData exists even if not authenticated
+  console.log('🔍 game_map3.js: Initial window.gameData check:', window.gameData);
+  
   if (!window.gameData) {
     window.gameData = {
       user: {
@@ -25,6 +27,16 @@
       }
     };
     console.log('🧩 Created default gameData for guest user');
+  } else {
+    console.log('✅ Using server-provided gameData:', window.gameData);
+    console.log('🔍 User details:', {
+      id: window.gameData.user?.id,
+      username: window.gameData.user?.username,
+      level: window.gameData.user?.level,
+      experience: window.gameData.user?.experience,
+      pixelCoins: window.gameData.user?.pixelCoins,
+      badges: window.gameData.user?.badges
+    });
   }
 
   // Collision overrides Map (same as game.js)
@@ -486,8 +498,27 @@
     }
   }
 
-  // Initialize player profile as class instance
+  // Initialize player profile as class instance with server data
   const playerProfile = new PlayerProfile();
+  
+  // Initialize player profile with server-provided data if available
+  if (window.gameData && window.gameData.user && window.gameData.user.id) {
+    console.log('🎯 Initializing playerProfile with server data...');
+    playerProfile.playerName = window.gameData.user.username || 'Unknown Player';
+    playerProfile.pixelCoins = window.gameData.user.pixelCoins || 0;
+    playerProfile.experience = window.gameData.user.experience || 0;
+    playerProfile.level = window.gameData.user.level || 1;
+    playerProfile.badges = window.gameData.user.badges || [];
+    console.log('✅ PlayerProfile initialized with:', {
+      playerName: playerProfile.playerName,
+      level: playerProfile.level,
+      experience: playerProfile.experience,
+      pixelCoins: playerProfile.pixelCoins,
+      badges: playerProfile.badges.length
+    });
+  } else {
+    console.log('🧩 Using default PlayerProfile (no server data available)');
+  }
 
   // Expose playerProfile globally for dialogue system access
   window.playerProfile = playerProfile;
@@ -928,7 +959,7 @@
   }
 
   // Player movement
-  const keys = {};
+  let keys = {};
   let lastUpdateTime = 0;
 
   function update(currentTime) {
@@ -1344,9 +1375,10 @@
     }
   }
 
-  // Enemy Quiz System (Higher Difficulty than main game)
+  // Enemy Quiz System - Unique quiz for each enemy position
   const enemyQuizzes = {
-    'enemy1': {
+    // Enemy at (-81, 309) - id:5
+    'enemy_-5_19': {
       title: 'JavaScript Fundamentals - Advanced',
       enemyImage: '/images/enemy1.png',
       questions: [
@@ -1372,7 +1404,8 @@
         }
       ]
     },
-    'enemy2': {
+    // Enemy at (-81, 194) - id:6  
+    'enemy_-5_12': {
       title: 'Functions & Scope - Expert Level',
       enemyImage: '/images/enemy2.png',
       questions: [
@@ -1398,59 +1431,62 @@
         }
       ]
     },
-    'enemy3': {
-      title: 'Conditionals & Logic - Advanced',
+    // Enemy at (33, 451) - id:7
+    'enemy_2_28': {
+      title: 'ES6+ Features - Modern JavaScript',
       enemyImage: '/images/enemy3.png',
       questions: [
         {
-          question: "What is the difference between '==' and '==='?",
-          options: ["No difference", "'===' does not do type coercion", "'==' is faster", "'===' only works with numbers"],
+          question: "What is the purpose of destructuring in ES6?",
+          options: ["To destroy objects", "To extract values from arrays or objects", "To create new objects", "To delete properties"],
           correctAnswer: 1
         },
         {
-          question: "What does 'NaN === NaN' return?",
-          options: ["true", "false", "undefined", "Error"],
+          question: "Which ES6 feature allows you to handle multiple promises?",
+          options: ["Promise.chain()", "Promise.all()", "Promise.merge()", "Promise.combine()"],
           correctAnswer: 1
         },
         {
-          question: "Which logical operator has the highest precedence?",
-          options: ["&&", "||", "!", "All have equal precedence"],
-          correctAnswer: 2
+          question: "What does the spread operator (...) do?",
+          options: ["Creates arrays", "Expands iterable elements", "Sorts arrays", "Filters arrays"],
+          correctAnswer: 1
         },
         {
-          question: "What happens in a switch statement when no case matches and there's no default?",
-          options: ["Error is thrown", "Code continues execution", "Switch statement exits", "Nothing happens"],
+          question: "What are template literals in ES6?",
+          options: ["Regular strings", "Strings that can contain expressions", "Only for HTML templates", "Cannot contain variables"],
           correctAnswer: 1
         }
       ]
     },
-    'enemy4': {
-      title: 'Loops & Iteration - Expert',
+    // Enemy at (-347, 548) - id:8
+    'enemy_-22_34': {
+      title: 'DOM Manipulation - Expert',
       enemyImage: '/images/enemy4.png',
       questions: [
         {
-          question: "What is the difference between 'for...in' and 'for...of' loops?",
-          options: ["No difference", "'for...in' iterates over keys, 'for...of' iterates over values", "'for...of' is faster", "'for...in' works only with arrays"],
+          question: "What is the difference between querySelector() and getElementById()?",
+          options: ["No difference", "querySelector() returns static NodeList, getElementById() returns live HTMLCollection", "querySelector() is faster", "getElementById() can use CSS selectors"],
           correctAnswer: 1
         },
         {
-          question: "What does the 'continue' statement do in a loop?",
-          options: ["Exits the loop", "Skips current iteration and continues with next", "Restarts the loop", "Pauses the loop"],
+          question: "What does event.preventDefault() do?",
+          options: ["Stops event propagation", "Prevents default browser behavior", "Removes event listener", "Cancels the event"],
           correctAnswer: 1
         },
         {
-          question: "Which method can be used to execute a function for each array element?",
-          options: ["map()", "forEach()", "filter()", "All of the above"],
-          correctAnswer: 3
+          question: "Which method adds a CSS class to an element?",
+          options: ["element.add()", "element.addClass()", "element.classList.add()", "element.css()"],
+          correctAnswer: 2
         },
         {
-          question: "What happens if you don't increment the counter in a for loop?",
-          options: ["Infinite loop", "Loop doesn't execute", "Syntax error", "Loop executes once"],
+          question: "What is the DOM?",
+          options: ["Document Object Model", "Data Object Management", "Dynamic Object Model", "Document Order Model"],
           correctAnswer: 0
         }
       ]
     },
-    'enemy5': {
+    // Enemy at (14, 81) - id:9
+    'enemy_0_5': {
       title: 'Arrays & Objects - Advanced',
       enemyImage: '/images/enemy5.png',
       questions: [
@@ -1476,7 +1512,8 @@
         }
       ]
     },
-    'enemy6': {
+    // Enemy at (-370, 179) - id:10
+    'enemy_-23_11': {
       title: 'Advanced Methods - Expert Level',
       enemyImage: '/images/enemy6.png',
       questions: [
@@ -1498,6 +1535,340 @@
         {
           question: "What does 'Array.from()' do?",
           options: ["Creates array from string", "Creates array from array-like object or iterable", "Creates copy of array", "Converts array to object"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (-121, -177) - id:11
+    'enemy_-8_-11': {
+      title: 'Loops & Iteration - Expert',
+      enemyImage: '/images/enemy1.png',
+      questions: [
+        {
+          question: "What is the difference between 'for...in' and 'for...of' loops?",
+          options: ["No difference", "'for...in' iterates over keys, 'for...of' iterates over values", "'for...of' is faster", "'for...in' works only with arrays"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does the 'continue' statement do in a loop?",
+          options: ["Exits the loop", "Skips current iteration and continues with next", "Restarts the loop", "Pauses the loop"],
+          correctAnswer: 1
+        },
+        {
+          question: "Which method can be used to execute a function for each array element?",
+          options: ["map()", "forEach()", "filter()", "All of the above"],
+          correctAnswer: 3
+        },
+        {
+          question: "What happens if you don't increment the counter in a for loop?",
+          options: ["Infinite loop", "Loop doesn't execute", "Syntax error", "Loop executes once"],
+          correctAnswer: 0
+        },
+        {
+          question: "Which loop is best when you know the exact number of iterations?",
+          options: ["while loop", "do...while loop", "for loop", "for...in loop"],
+          correctAnswer: 2
+        }
+      ]
+    },
+    // Enemy at (-317, -31) - id:12
+    'enemy_-20_-2': {
+      title: 'Error Handling & Debugging',
+      enemyImage: '/images/enemy2.png',
+      questions: [
+        {
+          question: "What is the purpose of try...catch blocks?",
+          options: ["To prevent all errors", "To handle runtime errors gracefully", "To debug code", "To stop execution"],
+          correctAnswer: 1
+        },
+        {
+          question: "Which error is thrown when trying to access undefined property?",
+          options: ["ReferenceError", "TypeError", "SyntaxError", "RangeError"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does 'throw new Error()' do?",
+          options: ["Catches an error", "Creates and throws a custom error", "Logs an error", "Ignores the error"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is the difference between undefined and null?",
+          options: ["No difference", "undefined means not declared, null means explicitly empty", "null means not declared, undefined means explicitly empty", "Both are the same"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (-580, 212) - id:13
+    'enemy_-36_13': {
+      title: 'Async JavaScript - Promises & async/await',
+      enemyImage: '/images/enemy3.png',
+      questions: [
+        {
+          question: "What is a Promise in JavaScript?",
+          options: ["A guarantee of future value", "An object representing eventual completion of async operation", "A synchronous operation", "A type of function"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does the 'async' keyword do?",
+          options: ["Makes function run faster", "Makes function return a Promise", "Makes function synchronous", "Prevents errors"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is the difference between Promise.all() and Promise.race()?",
+          options: ["No difference", "all() waits for all, race() waits for first", "race() waits for all, all() waits for first", "Both do the same thing"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does 'await' do?",
+          options: ["Pauses function execution until Promise resolves", "Makes function async", "Creates new Promise", "Handles errors"],
+          correctAnswer: 0
+        }
+      ]
+    },
+    // Enemy at (-614, 424) - id:14
+    'enemy_-38_26': {
+      title: 'Object Oriented Programming',
+      enemyImage: '/images/enemy4.png',
+      questions: [
+        {
+          question: "What is a class in JavaScript?",
+          options: ["A function", "A blueprint for creating objects", "An array", "A variable"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is the 'constructor' method?",
+          options: ["A method that destroys objects", "A special method called when creating new instance", "A regular method", "A static method"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does 'extends' do in class inheritance?",
+          options: ["Creates new class", "Makes class inherit from another class", "Extends array length", "Adds properties"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is 'this' in a class method?",
+          options: ["The window object", "The class instance", "The method itself", "Undefined"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (-160, -407) - id:15 (largest enemy)
+    'enemy_-10_-26': {
+      title: 'Loops & Iteration - Master Challenge',
+      enemyImage: '/images/enemy5.png',
+      questions: [
+        {
+          question: "What is the iterator protocol in JavaScript?",
+          options: ["A way to create loops", "A protocol defining how objects can be iterated", "A method for array iteration", "A type of for loop"],
+          correctAnswer: 1
+        },
+        {
+          question: "What happens when you use 'break' in nested loops?",
+          options: ["Breaks out of all loops", "Breaks out of the innermost loop only", "Throws an error", "Restarts the loops"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is the difference between forEach() and for...of performance?",
+          options: ["No difference", "forEach() cannot be broken, for...of can be", "for...of is always faster", "forEach() is always faster"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does 'yield' do in a generator function?",
+          options: ["Creates a new function", "Pauses execution and returns a value", "Ends the function", "Throws an error"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is a labeled statement used for in loops?",
+          options: ["Naming variables", "Breaking out of specific nested loops", "Creating loop counters", "Defining loop conditions"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (382, 529) - id:16
+    'enemy_23_33': {
+      title: 'String Manipulation - Expert',
+      enemyImage: '/images/enemy6.png',
+      questions: [
+        {
+          question: "What does 'split()' method do?",
+          options: ["Divides string into array of substrings", "Joins array elements", "Reverses string", "Removes characters"],
+          correctAnswer: 0
+        },
+        {
+          question: "What is the difference between slice() and substring()?",
+          options: ["No difference", "slice() can accept negative indices, substring() cannot", "substring() can accept negative indices, slice() cannot", "Both work differently"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does 'trim()' do?",
+          options: ["Removes all whitespace", "Removes whitespace from both ends", "Removes only spaces", "Adds whitespace"],
+          correctAnswer: 1
+        },
+        {
+          question: "Which method checks if a string contains another string?",
+          options: ["contains()", "includes()", "has()", "find()"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (377, 386) - id:17
+    'enemy_23_24': {
+      title: 'Math & Number Methods',
+      enemyImage: '/images/enemy1.png',
+      questions: [
+        {
+          question: "What does Math.floor() do?",
+          options: ["Rounds up", "Rounds down", "Rounds to nearest", "Removes decimal part"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is the difference between parseInt() and Number()?",
+          options: ["No difference", "parseInt() parses string to integer, Number() converts to number", "Number() parses string to integer, parseInt() converts to number", "Both do the same"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does Math.random() return?",
+          options: ["Random integer", "Random number between 0 and 1", "Random boolean", "Random string"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does toFixed() do?",
+          options: ["Rounds number to specified decimal places", "Converts to integer", "Formats as currency", "Adds decimal places"],
+          correctAnswer: 0
+        }
+      ]
+    },
+    // Enemy at (390, 245) - id:18
+    'enemy_24_15': {
+      title: 'Date & Time Operations',
+      enemyImage: '/images/enemy2.png',
+      questions: [
+        {
+          question: "How do you create a new Date object?",
+          options: ["new Date()", "Date.now()", "createDate()", "getDate()"],
+          correctAnswer: 0
+        },
+        {
+          question: "What does getMonth() return?",
+          options: ["Month name", "Month number (0-11)", "Month number (1-12)", "Year"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is the difference between getDate() and getDay()?",
+          options: ["No difference", "getDate() returns day of month, getDay() returns day of week", "getDay() returns day of month, getDate() returns day of week", "Both return same"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does Date.now() return?",
+          options: ["Current date string", "Current timestamp in milliseconds", "Current year", "Current time"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (424, 99) - id:19
+    'enemy_26_6': {
+      title: 'Regular Expressions - Expert',
+      enemyImage: '/images/enemy3.png',
+      questions: [
+        {
+          question: "What does the regex pattern '^' mean?",
+          options: ["End of string", "Start of string", "Any character", "No special meaning"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does the pattern '\d+' match?",
+          options: ["One digit", "One or more digits", "Exactly two digits", "No digits"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does the 'g' flag do in regex?",
+          options: ["Global search", "Case insensitive", "Multiline", "Greedy"],
+          correctAnswer: 0
+        },
+        {
+          question: "Which method tests if a string matches a regex pattern?",
+          options: ["match()", "test()", "search()", "find()"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (392, -50) - id:20
+    'enemy_24_-4': {
+      title: 'Type Conversion & Coercion',
+      enemyImage: '/images/enemy4.png',
+      questions: [
+        {
+          question: "What is type coercion in JavaScript?",
+          options: ["Explicit type conversion", "Automatic type conversion by JavaScript", "Type checking", "Type validation"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does '5' + 5 evaluate to?",
+          options: ["10", "'55'", "Error", "undefined"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does '5' - 5 evaluate to?",
+          options: ["0", "'55'", "Error", "undefined"],
+          correctAnswer: 0
+        },
+        {
+          question: "What does Boolean('') return?",
+          options: ["true", "false", "undefined", "null"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (405, -198) - id:21
+    'enemy_25_-13': {
+      title: 'Memory Management & Performance',
+      enemyImage: '/images/enemy5.png',
+      questions: [
+        {
+          question: "What is garbage collection in JavaScript?",
+          options: ["Manual memory cleanup", "Automatic memory management", "Deleting variables", "Clearing cache"],
+          correctAnswer: 1
+        },
+        {
+          question: "What causes memory leaks in JavaScript?",
+          options: ["Too many variables", "Unwanted references preventing garbage collection", "Large arrays", "High CPU usage"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is debouncing?",
+          options: ["Delaying function execution", "Removing bounce effects", "Error handling", "Memory optimization"],
+          correctAnswer: 0
+        },
+        {
+          question: "What is the difference between setTimeout() and setInterval()?",
+          options: ["No difference", "setTimeout() executes once, setInterval() executes repeatedly", "setInterval() executes once, setTimeout() executes repeatedly", "Both execute immediately"],
+          correctAnswer: 1
+        }
+      ]
+    },
+    // Enemy at (357, 655) - id:22
+    'enemy_22_40': {
+      title: 'Web APIs & Browser Features',
+      enemyImage: '/images/enemy6.png',
+      questions: [
+        {
+          question: "What is localStorage?",
+          options: ["Server storage", "Browser storage for data", "Memory storage", "Temporary storage"],
+          correctAnswer: 1
+        },
+        {
+          question: "What is the difference between localStorage and sessionStorage?",
+          options: ["No difference", "localStorage persists after browser close, sessionStorage doesn't", "sessionStorage persists after browser close, localStorage doesn't", "Both are temporary"],
+          correctAnswer: 1
+        },
+        {
+          question: "What does fetch() API do?",
+          options: ["Gets data from server", "Stores data locally", "Validates forms", "Handles errors"],
+          correctAnswer: 0
+        },
+        {
+          question: "What is the DOMContentLoaded event?",
+          options: ["Fires when images are loaded", "Fires when HTML is fully loaded and parsed", "Fires when CSS is loaded", "Fires when JavaScript is executed"],
           correctAnswer: 1
         }
       ]
@@ -1540,8 +1911,10 @@
         );
 
         if (distance <= 50) {
+          // Use position-based ID for consistency
+          const enemyId = obj.name || `enemy_${Math.floor(obj.x/16)}_${Math.floor(obj.y/16)}`;
           return {
-            id: obj.name || `enemy${Math.floor(Math.random() * 1000)}`,
+            id: enemyId,
             x: obj.x,
             y: obj.y,
             width: obj.width,
@@ -1557,38 +1930,71 @@
 
   // Start enemy quiz
   function startEnemyQuiz(enemy) {
-    const enemyKey = enemy.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const quizData = enemyQuizzes[enemyKey] || enemyQuizzes['enemy1'];
-
-    if (!quizData) {
-      console.log('❌ No quiz data found for enemy:', enemyKey);
+    // Check if enemy is already defeated
+    if (gameState.completedEnemies.has(enemy.id)) {
+      showNotification('This enemy has already been defeated!', '#e74c3c');
       return;
     }
 
-    // Set up current enemy quiz
-    currentEnemy = {
-      active: true,
-      enemyId: enemy.id,
-      enemyData: enemy,
-      currentQuestion: 0,
-      questions: quizData.questions,
-      title: quizData.title,
-      enemyImage: quizData.enemyImage,
-      score: 0,
-      correctAnswers: 0,
-      wrongAnswers: 0,
-      hoveredOption: -1,
-      userAnswers: []
-    };
+    // Use position-based enemy ID for unique quiz selection
+    const quizData = enemyQuizzes[enemy.id];
 
-    console.log(`⚔️ Enemy quiz started: ${quizData.title}`);
+    if (!quizData) {
+      console.log('❌ No quiz data found for enemy:', enemy.id);
+      // Fallback to a default quiz if no specific quiz exists
+      const fallbackQuiz = {
+        title: 'JavaScript Challenge',
+        enemyImage: '/images/enemy1.png',
+        questions: [
+          {
+            question: "What is JavaScript?",
+            options: ["Programming language", "Markup language", "Database", "Operating system"],
+            correctAnswer: 0
+          }
+        ]
+      };
+      
+      // Set up current enemy quiz with fallback
+      currentEnemy = {
+        active: true,
+        enemyId: enemy.id,
+        enemyData: enemy,
+        currentQuestion: 0,
+        questions: fallbackQuiz.questions,
+        title: fallbackQuiz.title,
+        enemyImage: fallbackQuiz.enemyImage,
+        score: 0,
+        correctAnswers: 0,
+        wrongAnswers: 0,
+        hoveredOption: -1,
+        userAnswers: []
+      };
+    } else {
+      // Set up current enemy quiz with specific quiz data
+      currentEnemy = {
+        active: true,
+        enemyId: enemy.id,
+        enemyData: enemy,
+        currentQuestion: 0,
+        questions: quizData.questions,
+        title: quizData.title,
+        enemyImage: quizData.enemyImage,
+        score: 0,
+        correctAnswers: 0,
+        wrongAnswers: 0,
+        hoveredOption: -1,
+        userAnswers: []
+      };
+    }
+
+    console.log(`⚔️ Enemy quiz started: ${currentEnemy.title} for enemy at ${enemy.x}, ${enemy.y}`);
     canvas.style.cursor = 'default';
 
     // Disable player movement during quiz
     keys = {};
 
     // Show quiz notification
-    playerProfile.showRewardNotification(`Enemy Challenge: ${quizData.title}`, '#FF6B6B');
+    showNotification(`Enemy Challenge: ${currentEnemy.title}`, '#FF6B6B');
   }
 
   // Handle enemy quiz answer
@@ -1611,29 +2017,41 @@
       currentEnemy.score += 10;
 
       // Show positive feedback
-      playerProfile.showFloatingText('Correct! +10 XP', player.x + player.width/2, player.y - 20, '#00FF00');
+      showNotification('Correct! +30 XP, +20 Gold', '#27ae60');
 
-      // Award XP immediately for correct answers
-      playerProfile.awardExperience(5, `Enemy quiz correct answer`);
+      // Award XP and gold immediately for correct answers
+      playerProfile.awardExperience(30, `Enemy quiz correct answer`);
+      playerProfile.awardPixelCoins(20, `Enemy quiz gold bonus`);
 
     } else {
       currentEnemy.wrongAnswers++;
 
       // Show negative feedback
-      playerProfile.showFloatingText('Incorrect', player.x + player.width/2, player.y - 20, '#FF6B6B');
+      showNotification('Wrong answer! -15 XP', '#e74c3c');
+
+      // Subtract XP for wrong answers
+      playerProfile.experience = Math.max(0, playerProfile.experience - 15);
+
+      // Check if this is the Master Challenge enemy
+      if (currentEnemy.enemyId === 'enemy_-10_-26') {
+        // For Master Challenge, stop quiz on first wrong answer
+        showNotification('Master Challenge Failed! Quiz ended on incorrect answer.', '#e74c3c');
+        completeEnemyQuiz(true); // Pass true to indicate failure due to incorrect answer
+        return;
+      }
     }
 
     // Move to next question or complete quiz
     currentEnemy.currentQuestion++;
 
     if (currentEnemy.currentQuestion >= currentEnemy.questions.length) {
-      // Quiz completed
+      // Quiz completed (all questions answered)
       completeEnemyQuiz();
     }
   }
 
-  // Complete enemy quiz
-  function completeEnemyQuiz() {
+  // Complete enemy quiz (when all questions answered or quiz ends)
+  function completeEnemyQuiz(failedDueToWrongAnswer = false) {
     const totalQuestions = currentEnemy.questions.length;
     const correctPercentage = (currentEnemy.correctAnswers / totalQuestions) * 100;
     const xpReward = Math.floor(currentEnemy.score * 1.5); // Bonus XP multiplier
@@ -1642,40 +2060,61 @@
     let resultMessage = '';
     let resultColor = '#FF6B6B';
 
-    if (correctPercentage >= 80) {
-      resultMessage = `🎉 Excellent! ${correctPercentage.toFixed(0)}% correct!`;
-      resultColor = '#00FF00';
-      playerProfile.awardBadge('enemy_master', 'Defeated enemy with 80%+ quiz score');
-    } else if (correctPercentage >= 60) {
-      resultMessage = `👍 Good job! ${correctPercentage.toFixed(0)}% correct!`;
-      resultColor = '#FFD700';
-    } else if (correctPercentage >= 40) {
-      resultMessage = `😐 Not bad! ${correctPercentage.toFixed(0)}% correct.`;
-      resultColor = '#FF6B6B';
+    if (failedDueToWrongAnswer && currentEnemy.enemyId === 'enemy_-10_-26') {
+      // Master Challenge failed due to wrong answer - don't mark as defeated
+      resultMessage = `💔 Master Challenge Failed! Try again when you're ready.`;
+      resultColor = '#e74c3c';
+      
+      // Only award partial rewards for failed attempt
+      const partialXP = currentEnemy.correctAnswers * 10;
+      const partialGold = currentEnemy.correctAnswers * 10;
+      
+      if (partialXP > 0) {
+        playerProfile.awardExperience(partialXP, `Partial Master Challenge progress`);
+        playerProfile.awardPixelCoins(partialGold, `Partial Master Challenge rewards`);
+        showNotification(`Partial progress: ${partialXP} XP and ${partialGold} Gold`, '#FFD700');
+      }
     } else {
-      resultMessage = `💪 Keep practicing! ${correctPercentage.toFixed(0)}% correct.`;
-      resultColor = '#FF4444';
+      // Normal quiz completion or Master Challenge completed successfully
+      if (correctPercentage >= 80) {
+        resultMessage = `🎉 Excellent! ${correctPercentage.toFixed(0)}% correct!`;
+        resultColor = '#00FF00';
+        playerProfile.awardBadge('enemy_master', 'Defeated enemy with 80%+ quiz score');
+      } else if (correctPercentage >= 60) {
+        resultMessage = `👍 Good job! ${correctPercentage.toFixed(0)}% correct!`;
+        resultColor = '#FFD700';
+      } else if (correctPercentage >= 40) {
+        resultMessage = `😐 Not bad! ${correctPercentage.toFixed(0)}% correct.`;
+        resultColor = '#FF6B6B';
+      } else {
+        resultMessage = `💪 Keep practicing! ${correctPercentage.toFixed(0)}% correct.`;
+        resultColor = '#FF4444';
+      }
+
+      // Award final rewards
+      playerProfile.awardExperience(xpReward, `Completed enemy quiz: ${currentEnemy.title}`);
+      playerProfile.awardPixelCoins(goldReward, `Enemy quiz rewards`);
+
+      // Mark enemy as defeated (only for successful completion)
+      gameState.completedEnemies.add(currentEnemy.enemyId);
     }
-
-    // Award final rewards
-    playerProfile.awardExperience(xpReward, `Completed enemy quiz: ${currentEnemy.title}`);
-    playerProfile.awardPixelCoins(goldReward, `Enemy quiz rewards`);
-
-    // Mark enemy as defeated
-    gameState.completedEnemies.add(currentEnemy.enemyId);
 
     // Show completion message
     setTimeout(() => {
-      playerProfile.showRewardNotification(resultMessage, resultColor);
-      playerProfile.showRewardNotification(`Earned ${xpReward} XP and ${goldReward} Gold!`, '#FFD700');
+      showNotification(resultMessage, resultColor);
+      
+      // Only show rewards message and defeat dialogue for successful completion
+      if (!failedDueToWrongAnswer || currentEnemy.enemyId !== 'enemy_-10_-26') {
+        showNotification(`Earned ${xpReward} XP and ${goldReward} Gold!`, '#FFD700');
+        
+        // Play quest completion sound
+        AudioManager.playQuestSound();
 
-      // Play quest completion sound
-      AudioManager.playQuestSound();
-
-      // Show defeat dialogue after a short delay
-      setTimeout(() => {
-        showEnemyDefeatDialogue(currentEnemy.enemyId);
-      }, 1500);
+        // Show defeat dialogue after a short delay
+        setTimeout(() => {
+          showEnemyDefeatDialogue(currentEnemy.enemyId);
+        }, 1500);
+      }
     }, 500);
 
     console.log(`✅ Enemy quiz completed: ${currentEnemy.title}`);
@@ -1692,8 +2131,37 @@
 
   // Show enemy defeat dialogue (after quiz completion)
   function showEnemyDefeatDialogue(enemyId) {
-    const enemyKey = enemyId.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const dialogue = enemyDialogues[enemyKey] || enemyDialogues['enemy1'];
+    // Check if this is the Master Challenge
+    if (enemyId === 'enemy_-10_-26') {
+      showMasterChallengeVictory();
+      return;
+    }
+
+    // Find the enemy data to get position for dialogue selection
+    const mapData = MapRenderer.getMapData();
+    let enemyData = null;
+    if (mapData && mapData.layers) {
+      for (const layer of mapData.layers) {
+        if (layer.type === 'objectgroup' && layer.name.toLowerCase() === 'enemies') {
+          for (const obj of layer.objects || []) {
+            const objEnemyId = obj.name || `enemy_${Math.floor(obj.x/16)}_${Math.floor(obj.y/16)}`;
+            if (objEnemyId === enemyId) {
+              enemyData = obj;
+              break;
+            }
+          }
+        }
+        if (enemyData) break;
+      }
+    }
+
+    // Get quiz data for this specific enemy
+    const quizData = enemyQuizzes[enemyId];
+    const dialogue = {
+      greeting: "Hey there! Think you're smart enough to take me on?",
+      challenge: "Let's see if you can handle these JavaScript questions!",
+      defeat: "Impressive! You really know your stuff."
+    };
 
     // Create defeat dialogue box
     const dialogueBox = document.createElement('div');
@@ -1703,58 +2171,279 @@
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0, 100, 0, 0.9);
       color: white;
-      padding: 20px 30px;
-      border-radius: 12px;
-      border: 3px solid #27ae60;
-      max-width: 600px;
-      z-index: 10000;
+      padding: 20px;
+      border-radius: 10px;
       font-family: Arial, sans-serif;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+      font-size: 16px;
+      max-width: 400px;
+      z-index: 1000;
+      border: 2px solid #00FF00;
+      box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
     `;
 
     dialogueBox.innerHTML = `
-      <div style="margin-bottom: 15px; color: #27ae60; font-weight: bold; font-size: 18px;">
-        ✅ ${enemyId.toUpperCase()} DEFEATED!
+      <div style="margin-bottom: 15px; color: #00FF00; font-weight: bold; font-size: 18px;">
+        🎉 Enemy Defeated!
       </div>
       <div style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        ${dialogue.defeat}<br><br>
-        Well fought! You have proven your worth as a JavaScript master.
+        "${dialogue.defeat}"
       </div>
-      <div style="text-align: center;">
-        <button id="closeDefeatDialogueBtn" style="background: #27ae60; color: white; border: none;
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button id="closeDefeatBtn" style="background: #00FF00; color: black; border: none;
           padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer;
           font-weight: bold;">
-          Continue Adventure
+          ✅ Victory!
         </button>
       </div>
     `;
 
     document.body.appendChild(dialogueBox);
+    gameState.showingDialogue = true;
 
     // Handle close button
-    const closeBtn = document.getElementById('closeDefeatDialogueBtn');
+    const closeBtn = document.getElementById('closeDefeatBtn');
     closeBtn.addEventListener('click', () => {
-      document.body.removeChild(dialogueBox);
-    });
-
-    // Handle ESC key to close dialogue
-    const handleEscape = (e) => {
-      if (e.key.toLowerCase() === 'escape') {
+      if (dialogueBox && dialogueBox.parentNode === document.body) {
         document.body.removeChild(dialogueBox);
-        document.removeEventListener('keydown', handleEscape);
       }
-    };
-    document.addEventListener('keydown', handleEscape);
+      gameState.showingDialogue = false;
+    });
 
     // Auto-close after 5 seconds
     setTimeout(() => {
       if (document.body.contains(dialogueBox)) {
-        document.body.removeChild(dialogueBox);
+        if (dialogueBox && dialogueBox.parentNode === document.body) {
+          document.body.removeChild(dialogueBox);
+        }
         document.removeEventListener('keydown', handleEscape);
       }
     }, 5000);
+  }
+
+  // Show Master Challenge Victory dialogue with return option
+  function showMasterChallengeVictory() {
+    // Create victory dialogue box
+    const dialogueBox = document.createElement('div');
+    dialogueBox.id = 'master-challenge-victory';
+    dialogueBox.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.95), rgba(255, 140, 0, 0.95));
+      color: #000;
+      padding: 30px;
+      border-radius: 15px;
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      z-index: 1001;
+      border: 4px solid #FFD700;
+      box-shadow: 0 8px 32px rgba(255, 215, 0, 0.5), 0 0 50px rgba(255, 215, 0, 0.3);
+      text-align: center;
+    `;
+
+    dialogueBox.innerHTML = `
+      <div style="margin-bottom: 20px; font-size: 48px;">
+        🏆
+      </div>
+      <div style="font-size: 28px; font-weight: bold; margin-bottom: 15px; color: #8B0000;">
+        MASTER CHALLENGE CONQUERED!
+      </div>
+      <div style="font-size: 18px; line-height: 1.8; margin-bottom: 25px; color: #2c3e50;">
+        Incredible work, warrior! You've defeated the ultimate challenge and proven your mastery of JavaScript loops and iteration!
+        <br><br>
+        <strong style="color: #8B0000;">Quest 11 Complete!</strong>
+        <br>
+        Your mission is accomplished. Would you like to return to the main map?
+      </div>
+      <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+        <button id="returnToGameBtn" style="background: #27ae60; color: white; border: none;
+          padding: 15px 30px; border-radius: 8px; font-size: 18px; cursor: pointer;
+          font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: all 0.3s;">
+          🗺️ Return to Main Map
+        </button>
+        <button id="stayInArenaBtn" style="background: #3498db; color: white; border: none;
+          padding: 15px 30px; border-radius: 8px; font-size: 18px; cursor: pointer;
+          font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3); transition: all 0.3s;">
+          ⚔️ Stay in Arena
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(dialogueBox);
+    gameState.showingDialogue = true;
+
+    // Add hover effects
+    const returnBtn = document.getElementById('returnToGameBtn');
+    const stayBtn = document.getElementById('stayInArenaBtn');
+    
+    [returnBtn, stayBtn].forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        btn.style.transform = 'scale(1.05)';
+        btn.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = 'scale(1)';
+        btn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+      });
+    });
+
+    // Handle return to game.js
+    returnBtn.addEventListener('click', async () => {
+      if (dialogueBox && dialogueBox.parentNode === document.body) {
+        document.body.removeChild(dialogueBox);
+      }
+      gameState.showingDialogue = false;
+      await completeQuest11AndReturn();
+    });
+
+    // Handle stay in arena
+    stayBtn.addEventListener('click', () => {
+      if (dialogueBox && dialogueBox.parentNode === document.body) {
+        document.body.removeChild(dialogueBox);
+      }
+      gameState.showingDialogue = false;
+      showNotification('🎉 Victory achieved! You can return to the main map anytime.', '#27ae60');
+      
+      // Still mark Quest 11 as complete but don't navigate away
+      completeQuest11WithoutReturn();
+    });
+  }
+
+  // Complete Quest 11 and return to game.js
+  async function completeQuest11AndReturn() {
+    try {
+      showNotification('💾 Saving your progress...', '#3498db');
+      
+      // Mark Quest 11 (ID: 338) as completed
+      if (!gameState.completedQuests) {
+        gameState.completedQuests = new Set();
+      }
+      gameState.completedQuests.add(338);
+      gameState.completedQuests.add('quest11');
+      
+      // Remove from active quests if present
+      if (gameState.activeQuests) {
+        gameState.activeQuests.delete(338);
+        gameState.activeQuests.delete('quest11');
+      }
+      
+      // Save all progress to server
+      const saveData = {
+        playerName: playerProfile.playerName,
+        inGameName: playerProfile.inGameName,
+        level: playerProfile.level,
+        experience: playerProfile.experience,
+        pixelCoins: playerProfile.pixelCoins,
+        badges: Array.from(playerProfile.badges),
+        gameStats: playerProfile.gameStats,
+        player: {
+          x: player.x,
+          y: player.y
+        },
+        collectedRewards: Array.from(gameState.collectedRewards || []),
+        activeQuests: Array.from(gameState.activeQuests || []),
+        completedQuests: Array.from(gameState.completedQuests || []),
+        interactedNPCs: Array.from(gameState.interactedNPCs || []),
+        questProgress: gameState.questProgress || {},
+        playerDirection: gameState.playerDirection || 'right',
+        currentAnimation: gameState.currentAnimation || 'idle',
+        completedEnemies: Array.from(gameState.completedEnemies || []),
+        quest11Completed: true
+      };
+      
+      // Save to server
+      const response = await fetch('/game/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(saveData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save game to server');
+      }
+      
+      const result = await response.json();
+      console.log('✅ Game saved to server:', result);
+      
+      showNotification('✅ Progress saved! Returning to main map...', '#27ae60');
+      
+      // Wait a moment for the notification to be visible
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Navigate back to game.js
+      window.location.href = '/game';
+      
+    } catch (error) {
+      console.error('❌ Error saving game:', error);
+      showNotification('⚠️ Error saving progress. Please try again.', '#e74c3c');
+    }
+  }
+
+  // Complete Quest 11 without returning (for staying in arena)
+  async function completeQuest11WithoutReturn() {
+    try {
+      // Mark Quest 11 (ID: 338) as completed
+      if (!gameState.completedQuests) {
+        gameState.completedQuests = new Set();
+      }
+      gameState.completedQuests.add(338);
+      gameState.completedQuests.add('quest11');
+      
+      // Remove from active quests if present
+      if (gameState.activeQuests) {
+        gameState.activeQuests.delete(338);
+        gameState.activeQuests.delete('quest11');
+      }
+      
+      // Save all progress to server
+      const saveData = {
+        playerName: playerProfile.playerName,
+        inGameName: playerProfile.inGameName,
+        level: playerProfile.level,
+        experience: playerProfile.experience,
+        pixelCoins: playerProfile.pixelCoins,
+        badges: Array.from(playerProfile.badges),
+        gameStats: playerProfile.gameStats,
+        player: {
+          x: player.x,
+          y: player.y
+        },
+        collectedRewards: Array.from(gameState.collectedRewards || []),
+        activeQuests: Array.from(gameState.activeQuests || []),
+        completedQuests: Array.from(gameState.completedQuests || []),
+        interactedNPCs: Array.from(gameState.interactedNPCs || []),
+        questProgress: gameState.questProgress || {},
+        playerDirection: gameState.playerDirection || 'right',
+        currentAnimation: gameState.currentAnimation || 'idle',
+        completedEnemies: Array.from(gameState.completedEnemies || []),
+        quest11Completed: true
+      };
+      
+      // Save to server
+      const response = await fetch('/game/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(saveData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save game to server');
+      }
+      
+      const result = await response.json();
+      console.log('✅ Quest 11 completed and saved:', result);
+      
+    } catch (error) {
+      console.error('❌ Error saving Quest 11 completion:', error);
+      showNotification('⚠️ Error saving progress. Please try again.', '#e74c3c');
+    }
   }
 
   // Draw enemy quiz UI
@@ -1878,6 +2567,11 @@
   function showEnemyPrompt(enemy) {
     if (gameState.currentEnemy === enemy.id) return; // Already showing
 
+    // Check if enemy is already defeated - don't show prompt for defeated enemies
+    if (gameState.completedEnemies.has(enemy.id)) {
+      return;
+    }
+
     gameState.currentEnemy = enemy.id;
 
     // Create or update enemy prompt
@@ -1906,8 +2600,7 @@
     }
 
     // Check if enemy quiz already completed
-    const enemyKey = enemy.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const quizData = enemyQuizzes[enemyKey] || enemyQuizzes['enemy1'];
+    const quizData = enemyQuizzes[enemy.id];
     const isCompleted = gameState.completedEnemies?.has(enemy.id) || false;
 
     if (isCompleted) {
@@ -1984,6 +2677,12 @@
 
     const enemy = checkEnemyInteraction(playerCenterX, playerCenterY);
     if (enemy) {
+      // Check if enemy is already defeated
+      if (gameState.completedEnemies.has(enemy.id)) {
+        showNotification('This enemy has already been defeated!', '#e74c3c');
+        return;
+      }
+      
       console.log(`⚔️ Enemy interaction started: ${enemy.id}`);
       showEnemyDialogue(enemy);
       hideEnemyPrompt(); // Hide prompt after interaction
@@ -1992,8 +2691,19 @@
 
   // Show enemy dialogue (small talk before quiz)
   function showEnemyDialogue(enemy) {
-    const enemyKey = enemy.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const dialogue = enemyDialogues[enemyKey] || enemyDialogues['enemy1'];
+    // Check if enemy is already defeated
+    if (gameState.completedEnemies.has(enemy.id)) {
+      showNotification('This enemy has already been defeated!', '#e74c3c');
+      return;
+    }
+
+    // Get quiz data for this specific enemy
+    const quizData = enemyQuizzes[enemy.id];
+    const dialogue = {
+      greeting: "Hey there! Think you're smart enough to take me on?",
+      challenge: "Let's see if you can handle these JavaScript questions!",
+      defeat: "Impressive! You really know your stuff."
+    };
 
     // Create dialogue box
     const dialogueBox = document.createElement('div');
@@ -2005,20 +2715,19 @@
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.9);
       color: white;
-      padding: 20px 30px;
-      border-radius: 12px;
-      border: 3px solid #FF6B6B;
-      max-width: 600px;
-      z-index: 10000;
+      padding: 20px;
+      border-radius: 10px;
       font-family: Arial, sans-serif;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+      font-size: 16px;
+      max-width: 400px;
+      z-index: 1000;
+      border: 2px solid #FF6B6B;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     `;
-
-    const playerName = playerProfile.inGameName || 'Adventurer';
 
     dialogueBox.innerHTML = `
       <div style="margin-bottom: 15px; color: #FF6B6B; font-weight: bold; font-size: 18px;">
-        ⚔️ ${enemy.id.toUpperCase()}
+        ${quizData?.title || 'JavaScript Challenge'}
       </div>
       <div style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
         "${dialogue.greeting}<br><br>
@@ -2028,12 +2737,12 @@
         <button id="startEnemyQuizBtn" style="background: #FF6B6B; color: white; border: none;
           padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer;
           font-weight: bold;">
-          ⚔️ Accept Challenge!
+          Accept Challenge!
         </button>
         <button id="declineEnemyBtn" style="background: #666666; color: white; border: none;
           padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer;
           font-weight: bold;">
-          ❌ Not Now
+          Not Now
         </button>
       </div>
     `;
@@ -2044,44 +2753,60 @@
     // Handle Accept Challenge button
     const startBtn = document.getElementById('startEnemyQuizBtn');
     startBtn.addEventListener('click', () => {
-      document.body.removeChild(dialogueBox);
+      if (dialogueBox && dialogueBox.parentNode === document.body) {
+        document.body.removeChild(dialogueBox);
+      }
       gameState.showingDialogue = false;
+      
+      // Double-check if enemy is already defeated before starting quiz
+      if (gameState.completedEnemies.has(enemy.id)) {
+        showNotification('This enemy has already been defeated!', '#e74c3c');
+        return;
+      }
+      
       startEnemyQuiz(enemy);
     });
 
     // Handle Decline button
     const declineBtn = document.getElementById('declineEnemyBtn');
     declineBtn.addEventListener('click', () => {
-      document.body.removeChild(dialogueBox);
+      if (dialogueBox && dialogueBox.parentNode === document.body) {
+        document.body.removeChild(dialogueBox);
+      }
       gameState.showingDialogue = false;
       // Show prompt again
       showEnemyPrompt(enemy);
     });
 
-    // Handle ESC key to close dialogue
-    const handleEscape = (e) => {
-      if (e.key.toLowerCase() === 'escape') {
+    // Auto-close after 10 seconds
+    setTimeout(() => {
+      if (dialogueBox && dialogueBox.parentNode === document.body) {
         document.body.removeChild(dialogueBox);
         gameState.showingDialogue = false;
-        showEnemyPrompt(enemy);
-        document.removeEventListener('keydown', handleEscape);
+        // Show prompt again if we closed the initial dialogue
+        if (gameState.currentEnemy) {
+          const playerCenterX = player.x + player.width / 2;
+          const playerCenterY = player.y + player.height / 2;
+          const enemy = checkEnemyInteraction(playerCenterX, playerCenterY);
+          if (enemy) {
+            showEnemyPrompt(enemy);
+          }
+        }
       }
-    };
-    document.addEventListener('keydown', handleEscape);
+    }, 10000);
   }
 
-  // Render function
-  function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Draw map
+  function drawMap() {
+    // Clear canvas first (like game.js does)
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    
     // Apply camera zoom
-    const zoom = camera.zoom || 1.0;
+    const zoom = camera.zoom || 1.5;
     ctx.save();
     ctx.scale(zoom, zoom);
-
-    // Draw map
+    
     MapRenderer.drawMap(ctx, camera, canvas);
 
     // Draw player
@@ -2140,7 +2865,7 @@
   // Game loop
   function loop(currentTime) {
     update(currentTime);
-    render();
+    drawMap();
     requestAnimationFrame(loop);
   }
 
@@ -2178,7 +2903,7 @@
         if (e.key.toLowerCase() === 'escape') {
           currentEnemy.active = false;
           canvas.style.cursor = 'default';
-          playerProfile.showRewardNotification('Quiz closed', '#e74c3c');
+          showNotification('Quiz closed', '#e74c3c');
           e.preventDefault();
           return;
         }
@@ -2198,7 +2923,7 @@
       if (e.key.toLowerCase() === 'escape') {
         // Close any open dialogue
         const dialogueBox = document.getElementById('enemy-dialogue-box') || document.getElementById('enemy-defeat-dialogue');
-        if (dialogueBox) {
+        if (dialogueBox && dialogueBox.parentNode === document.body) {
           document.body.removeChild(dialogueBox);
           gameState.showingDialogue = false;
         }
@@ -2987,13 +3712,41 @@
   }
 
   function showNotification(text, color = '#FFD700') {
+    // Add animation styles if not already added
+    if (!document.getElementById('notification-animations')) {
+      const style = document.createElement('style');
+      style.id = 'notification-animations';
+      style.textContent = `
+        @keyframes slideInRight {
+          from {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     const notification = document.createElement('div');
     notification.textContent = text;
     notification.style.cssText = `
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        top: 20px;
+        right: 20px;
         background: rgba(0, 0, 0, 0.9);
         color: ${color};
         padding: 20px 30px;
@@ -3005,9 +3758,15 @@
         pointer-events: none;
         border: 2px solid ${color};
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        animation: slideInRight 0.3s ease-out;
     `;
     
     document.body.appendChild(notification);
+    
+    // Slide out and remove after 2.7 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-in';
+    }, 2700);
     
     // Remove after 3 seconds
     setTimeout(() => {
@@ -3017,10 +3776,55 @@
     }, 3000);
   }
 
+  // Load existing game state from server
+  async function loadGameState() {
+    try {
+      console.log('📥 Loading existing game state from server...');
+      const response = await fetch('/game/load');
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.extendedGameState) {
+          console.log('✅ Found existing game state, restoring...');
+          
+          // Restore completed quests from game.js
+          if (data.extendedGameState.completedQuests) {
+            gameState.completedQuests = new Set(data.extendedGameState.completedQuests);
+            console.log('📋 Restored completed quests:', Array.from(gameState.completedQuests));
+          }
+          
+          // Restore other game state
+          if (data.extendedGameState.activeQuests) {
+            gameState.activeQuests = new Set(data.extendedGameState.activeQuests);
+          }
+          if (data.extendedGameState.collectedRewards) {
+            gameState.collectedRewards = new Set(data.extendedGameState.collectedRewards);
+          }
+          if (data.extendedGameState.interactedNPCs) {
+            gameState.interactedNPCs = new Set(data.extendedGameState.interactedNPCs);
+          }
+          if (data.extendedGameState.questProgress) {
+            gameState.questProgress = data.extendedGameState.questProgress;
+          }
+          
+          console.log('✅ Game state restored successfully');
+        } else {
+          console.log('ℹ️ No existing game state found, starting fresh');
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load game state, starting fresh:', error);
+    }
+  }
+
   // Profile loading and initialization
   async function loadProfile() {
     try {
       console.log('🎮 Initializing Map3 Game...');
+
+      // Load existing game state first
+      await loadGameState();
 
       // Load map
       console.log('📦 Loading map data...');
@@ -3030,82 +3834,29 @@
       console.log('🎭 Loading character sprites...');
       animationManager = new AnimationManager();
 
-      // Get character type from server
+      // Get character type from server data (no API call needed)
       try {
-        console.log('👤 Fetching player profile for character sprite...');
-        console.log('🔍 gameData before profile fetch:', window.gameData);
+        console.log('👤 Using server-provided gameData for character sprite...');
+        console.log('🔍 gameData:', window.gameData);
 
-        // Add timeout and retry logic
-        let profileRetries = 0;
-        const maxProfileRetries = 3;
-        let profile = null;
-
-        while (profileRetries < maxProfileRetries) {
-          try {
-            console.log(`🔄 Profile fetch attempt ${profileRetries + 1}/${maxProfileRetries}...`);
-
-            // Add timeout to fetch
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-            const response = await fetch('/api/profile', {
-              signal: controller.signal,
-              headers: {
-                'Cache-Control': 'no-cache'
-              }
-            });
-
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-              profile = await response.json();
-              console.log('🔍 Profile data for sprite loading:', profile);
-              break; // Success, exit retry loop
-            } else if (response.status === 401) {
-              console.log('🔐 Not authenticated - using default character');
-              break; // Not authenticated, this is OK, use defaults
-            } else {
-              console.warn('⚠️ Profile API returned status:', response.status);
-              if (response.status === 404) {
-                console.log('ℹ️ No profile found, using defaults');
-                break; // No profile exists yet, this is OK
-              }
-              throw new Error(`Profile fetch failed with status: ${response.status}`);
-            }
-          } catch (fetchError) {
-            console.error(`❌ Profile fetch attempt ${profileRetries + 1} failed:`, fetchError.message);
-            profileRetries++;
-            if (profileRetries < maxProfileRetries) {
-              console.log(`⏳ Retrying profile fetch in 1 second...`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-          }
-        }
-
-        if (profile) {
-          // DON'T update from profile - keep fresh start
-          // Just load character sprite
-          const characterType = profile.characterType || 'knight';
-          console.log('🎨 Loading character sprite:', characterType);
+        // Use server-provided data instead of API call
+        if (window.gameData && window.gameData.user && window.gameData.user.id) {
+          const characterType = window.gameData.user.characterType || 'knight';
+          console.log('🎨 Loading character sprite from server data:', characterType);
           await animationManager.loadCharacterSprite(characterType);
 
-          // Keep admin role if present
-          if (window.gameData && window.gameData.user && profile.role) {
-            window.gameData.user.role = profile.role;
-          }
-
-          console.log('✅ Fresh game initialized (no profile data loaded):', {
+          console.log('✅ Game initialized with server data:', {
             level: playerProfile.level,
             experience: playerProfile.experience,
             pixelCoins: playerProfile.pixelCoins,
             badges: playerProfile.badges.length
           });
 
-          // Load avatar after profile data is available
+          // Load avatar after character data is available
           loadCharacterAvatar();
 
         } else {
-          console.warn('⚠️ No profile data available, using defaults');
+          console.warn('⚠️ No server gameData available, using defaults');
           await animationManager.loadCharacterSprite('knight');
           loadCharacterAvatar();
         }

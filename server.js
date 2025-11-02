@@ -103,6 +103,12 @@ app.use(express.static(path.join(__dirname, 'public'), {
   redirect: false
 }));
 
+// Redirect map3.html to /map3 route
+app.get('/map3.html', (req, res) => {
+  console.log('🔄 Redirecting /map3.html to /map3');
+  res.redirect('/map3');
+});
+
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);

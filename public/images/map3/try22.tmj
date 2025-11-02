@@ -635,12 +635,12 @@
                  "x":0,
                  "y":32
                 }],
-         "height":32,
+         "height":16,
          "id":7,
          "name":"water",
          "opacity":1,
          "startx":-32,
-         "starty":16,
+         "starty":32,
          "type":"tilelayer",
          "visible":true,
          "width":48,
@@ -934,7 +934,7 @@
          "startx":-32,
          "starty":0,
          "type":"tilelayer",
-         "visible":true,
+         "visible":false,
          "width":48,
          "x":0,
          "y":0

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monster Battle Arena - CodeQuest</title>
+    <title><%= title %></title>
     <style>
         body {
             margin: 0;
@@ -25,6 +25,9 @@
             height: 40px;
             box-sizing: border-box;
             border-bottom: 3px solid #FF6B6B;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .navbar h1 {
@@ -32,6 +35,28 @@
             font-size: 18px;
             line-height: 20px;
             color: #FF6B6B;
+        }
+        
+        .navbar .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .navbar .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .navbar .nav-links a:hover {
+            color: #FF6B6B;
+        }
+        
+        .navbar .username {
+            color: #FFD700;
+            font-weight: bold;
+            font-size: 14px;
         }
         
         #gameCanvas {
@@ -102,6 +127,17 @@
 <body>
     <div class="navbar">
         <h1>⚔️ Monster Battle Arena - Quest 11</h1>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/profile">Profile</a>
+            <% if (user.role === 'admin') { %>
+            <a href="/admin/analytics" style="color: #FFD700; font-weight: bold;">Admin</a>
+            <% } %>
+            <span class="username">Welcome, <%= user.username %>!</span>
+            <form action="/auth/logout" method="POST" style="display: inline;">
+                <button type="submit" style="background: none; border: 1px solid white; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Logout</button>
+            </form>
+        </div>
     </div>
     
     <canvas id="gameCanvas"></canvas>
@@ -114,31 +150,40 @@
         <p style="color: #FF6B6B; font-weight: bold; margin-top: 20px;">Get ready for battle!</p>
     </div>
     
-    <!-- Initialize fresh gameData on every load (no persistence) -->
+    <!-- Pass current user game data to map3 -->
     <script>
-        // Fresh start every time - no auto-save, no persistence
         window.gameData = {
             user: {
-                id: null,
-                username: 'Guest',
-                characterType: 'knight',
-                level: 1,
-                experience: 0,
-                pixelCoins: 0,
-                badges: [],
-                role: 'player'
+                id: '<%= user._id %>',
+                username: '<%= user.username %>',
+                characterType: '<%= user.characterType || "knight" %>',
+                characterAvatar: '<%= user.characterAvatar || "/images/characters/player/Knight.png" %>',
+                level: <%= user.level || 1 %>,
+                experience: <%= user.experience || 0 %>,
+                pixelCoins: <%= user.pixelCoins || 0 %>,
+                badges: <%- JSON.stringify(user.badges || []) %>,
+                role: '<%= user.role || "player" %>'
             }
         };
-        console.log('🎮 Fresh game initialized');
+        console.log('✅ Map3: Game data loaded with user progress:', {
+            username: window.gameData.user.username,
+            level: window.gameData.user.level,
+            experience: window.gameData.user.experience,
+            pixelCoins: window.gameData.user.pixelCoins,
+            badges: window.gameData.user.badges.length
+        });
     </script>
     
+    <!-- Load audio manager -->
+    <script src="/js/audio-manager.js?v=<%= Date.now() %>"></script>
+    
     <!-- Load map3 rendering module FIRST -->
-    <script src="/js/map3_render.js"></script>
+    <script src="/js/map3_render.js?v=<%= Date.now() %>"></script>
     
     <!-- Load collision debug system -->
-    <script src="/js/collision-debug-new.js"></script>
+    <script src="/js/collision-debug-new.js?v=<%= Date.now() %>"></script>
     
-    <!-- Load map3 game system (simplified version without quests/lessons) -->
-    <script src="/js/game_map3.js"></script>
+    <!-- Load map3 game system -->
+    <script src="/js/game_map3.js?v=<%= Date.now() %>"></script>
 </body>
 </html>
