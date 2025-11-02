@@ -114,6 +114,24 @@
         <p style="color: #FF6B6B; font-weight: bold; margin-top: 20px;">Get ready for battle!</p>
     </div>
     
+    <!-- Initialize fresh gameData on every load (no persistence) -->
+    <script>
+        // Fresh start every time - no auto-save, no persistence
+        window.gameData = {
+            user: {
+                id: null,
+                username: 'Guest',
+                characterType: 'knight',
+                level: 1,
+                experience: 0,
+                pixelCoins: 0,
+                badges: [],
+                role: 'player'
+            }
+        };
+        console.log('🎮 Fresh game initialized');
+    </script>
+    
     <!-- Load map3 rendering module FIRST -->
     <script src="/js/map3_render.js"></script>
     

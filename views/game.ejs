@@ -198,90 +198,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Prologue Video Overlay */
-        #prologue-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        #prologue-video {
-            max-width: 100%;
-            max-height: 100%;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            outline: none;
-        }
-        
-        #prologue-video::-webkit-media-controls {
-            display: none !important;
-        }
-        
-        #prologue-video::-webkit-media-controls-enclosure {
-            display: none !important;
-        }
-        
-        #skip-prologue-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 215, 0, 0.9);
-            color: #000;
-            border: 2px solid #FFD700;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            font-family: Arial, sans-serif;
-            transition: all 0.3s ease;
-            z-index: 2001;
-        }
-        
-        #skip-prologue-btn:hover {
-            background: #FFD700;
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
-        }
-        
-        #skip-prologue-btn:active {
-            transform: scale(0.95);
-        }
-        
-        #sound-prologue-btn {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #000;
-            border: 2px solid #FFF;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 2001;
-            line-height: 1;
-        }
-        
-        #sound-prologue-btn:hover {
-            background: #FFF;
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.5);
-        }
-        
-        #sound-prologue-btn:active {
-            transform: scale(0.95);
-        }
-        
         /* Responsive styles */
         @media (max-width: 768px) {
             .nav-menu {
@@ -367,16 +283,6 @@
             <p>Loading game...</p>
         </div>
         
-        <!-- Prologue Video Overlay -->
-        <div id="prologue-overlay" style="display: none;">
-            <video id="prologue-video" autoplay muted>
-                <source src="/images/Prologue.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            <button id="sound-prologue-btn" title="Toggle Sound">🔇</button>
-            <button id="skip-prologue-btn">Skip</button>
-        </div>
-        
         <!-- Game container -->
         <div id="game-wrapper">
             <!-- Canvas for the main game -->
@@ -393,9 +299,79 @@
         <source src="/audio/game-music.mp3" type="audio/mpeg">
     </audio>
     
-    <audio id="questCompleteSound">
-        <source src="/audio/Quest-Complete.mp3" type="audio/mpeg">
-    </audio>
+    <!-- Audio Controls Panel -->
+    <div id="audio-controls-panel" style="
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        z-index: 1000;
+        border: 2px solid #FFD700;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        min-width: 200px;
+        display: none;
+    ">
+        <div style="margin-bottom: 10px; font-weight: bold; color: #FFD700;">Audio Controls</div>
+        
+        <div style="margin-bottom: 8px;">
+            <label style="display: block; margin-bottom: 2px;">Master Volume</label>
+            <input type="range" id="master-volume" min="0" max="1" step="0.1" value="1" style="width: 100%;">
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+            <label style="display: block; margin-bottom: 2px;">Background Music</label>
+            <input type="range" id="bg-volume" min="0" max="1" step="0.1" value="0.3" style="width: 100%;">
+            <button id="bg-mute" class="audio-btn" style="margin-top: 2px; padding: 2px 8px; font-size: 10px;">🔊</button>
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+            <label style="display: block; margin-bottom: 2px;">Game Music</label>
+            <input type="range" id="game-volume" min="0" max="1" step="0.1" value="0.5" style="width: 100%;">
+            <button id="game-mute" class="audio-btn" style="margin-top: 2px; padding: 2px 8px; font-size: 10px;">🔊</button>
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+            <label style="display: block; margin-bottom: 2px;">Sound Effects</label>
+            <input type="range" id="sound-volume" min="0" max="1" step="0.1" value="0.7" style="width: 100%;">
+            <button id="sound-mute" class="audio-btn" style="margin-top: 2px; padding: 2px 8px; font-size: 10px;">🔊</button>
+        </div>
+        
+        <button id="toggle-audio-panel" style="
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #FFD700;
+            color: black;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        ">×</button>
+    </div>
+
+    <!-- Audio Controls Toggle Button -->
+    <button id="show-audio-controls" style="
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        z-index: 999;
+        font-family: Arial, sans-serif;
+    ">🔊 Audio</button>
 
     <!-- Game scripts -->
     <!-- Pass character data to game FIRST -->
@@ -414,6 +390,9 @@
     
     <!-- Load map rendering module FIRST -->
     <script src="/js/map_render.js?v=<%= Date.now() %>"></script>
+    
+    <!-- Load audio manager -->
+    <script src="/js/audio-manager.js?v=<%= Date.now() %>"></script>
     
     <!-- Load collision debug system -->
     <script src="/js/collision-debug-new.js?v=<%= Date.now() %>"></script>
@@ -495,6 +474,96 @@
             document.addEventListener('DOMContentLoaded', initializeUI);
         } else {
             initializeUI();
+        }
+        
+        // Audio Controls Panel Handler
+        function initializeAudioControls() {
+            const audioPanel = document.getElementById('audio-controls-panel');
+            const showButton = document.getElementById('show-audio-controls');
+            const closeButton = document.getElementById('toggle-audio-panel');
+            
+            // Show/hide panel
+            showButton.addEventListener('click', () => {
+                audioPanel.style.display = audioPanel.style.display === 'none' ? 'block' : 'none';
+                showButton.style.display = audioPanel.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            closeButton.addEventListener('click', () => {
+                audioPanel.style.display = 'none';
+                showButton.style.display = 'block';
+            });
+            
+            // Wait for AudioManager to be available
+            const initControls = () => {
+                if (!window.AudioManager) {
+                    setTimeout(initControls, 100);
+                    return;
+                }
+                
+                const audioManager = window.AudioManager;
+                
+                // Set initial values
+                document.getElementById('bg-volume').value = audioManager.backgroundVolume;
+                document.getElementById('game-volume').value = audioManager.gameVolume;
+                document.getElementById('sound-volume').value = audioManager.soundVolume;
+                document.getElementById('master-volume').value = audioManager.masterMuted ? 0 : 1;
+                
+                updateMuteButtons();
+                
+                // Volume controls
+                document.getElementById('bg-volume').addEventListener('input', (e) => {
+                    audioManager.setBackgroundVolume(parseFloat(e.target.value));
+                });
+                
+                document.getElementById('game-volume').addEventListener('input', (e) => {
+                    audioManager.setGameVolume(parseFloat(e.target.value));
+                });
+                
+                document.getElementById('sound-volume').addEventListener('input', (e) => {
+                    audioManager.setSoundVolume(parseFloat(e.target.value));
+                });
+                
+                document.getElementById('master-volume').addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    if (value === 0) {
+                        audioManager.toggleMasterMute();
+                    } else if (audioManager.masterMuted) {
+                        audioManager.toggleMasterMute();
+                    }
+                });
+                
+                // Mute buttons
+                document.getElementById('bg-mute').addEventListener('click', () => {
+                    audioManager.toggleBackgroundMute();
+                    updateMuteButtons();
+                });
+                
+                document.getElementById('game-mute').addEventListener('click', () => {
+                    audioManager.toggleGameMute();
+                    updateMuteButtons();
+                });
+                
+                document.getElementById('sound-mute').addEventListener('click', () => {
+                    audioManager.toggleSoundMute();
+                    updateMuteButtons();
+                });
+                
+                function updateMuteButtons() {
+                    document.getElementById('bg-mute').textContent = audioManager.backgroundMuted ? '🔇' : '🔊';
+                    document.getElementById('game-mute').textContent = audioManager.gameMuted ? '🔇' : '🔊';
+                    document.getElementById('sound-mute').textContent = audioManager.soundMuted ? '🔇' : '🔊';
+                    document.getElementById('master-volume').value = audioManager.masterMuted ? 0 : 1;
+                }
+            };
+            
+            initControls();
+        }
+        
+        // Initialize audio controls when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeAudioControls);
+        } else {
+            initializeAudioControls();
         }
     </script>
 </body>

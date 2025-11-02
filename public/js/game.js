@@ -510,9 +510,7 @@
         };
         
         // Reduce logging for performance
-        if (Math.random() < 0.01) {
-          console.log('📡 Auto-save');
-        }
+        console.log('💾 Manual save initiated');
         
         const response = await fetch('/game/save', {
           method: 'POST',
@@ -544,7 +542,7 @@
 
         // Reduce logging for performance
         if (Math.random() < 0.01) {
-          console.log('✅ Auto-saved');
+          console.log('✅ Manual save completed');
         }
       } catch (error) {
         console.error('❌ Failed to save profile:', error.message);
@@ -593,6 +591,246 @@
     }
   }
   
+  // Save slot functions
+  function getSaveSlotInfo(slot) {
+    const data = localStorage.getItem(`game_save_slot_${slot}`);
+    if (!data) return null;
+
+    try {
+      const saveData = JSON.parse(data);
+      return {
+        exists: true,
+        timestamp: saveData.timestamp,
+        level: saveData.playerProfile?.level || 1,
+        playerName: saveData.playerProfile?.playerName || 'Unknown'
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function saveGameToSlot(slot) {
+    try {
+      const savePayload = {
+        playerProfile: {
+          playerName: playerProfile.playerName,
+          inGameName: playerProfile.inGameName,
+          pixelCoins: playerProfile.pixelCoins,
+          experience: playerProfile.experience,
+          level: playerProfile.level,
+          badges: playerProfile.badges,
+          achievements: playerProfile.achievements,
+          gameStats: playerProfile.gameStats
+        },
+        playerPosition: {
+          x: gameState.player?.x || 0,
+          y: gameState.player?.y || 0
+        },
+        collectedRewards: Array.from(gameState.collectedRewards || []),
+        activeQuests: Array.from(gameState.activeQuests || []),
+        completedQuests: Array.from(gameState.completedQuests || []),
+        interactedNPCs: Array.from(gameState.interactedNPCs || []),
+        questProgress: gameState.questProgress || {},
+        playerDirection: gameState.playerDirection || 'right',
+        currentAnimation: gameState.currentAnimation || 'idle',
+        timestamp: new Date().toISOString()
+      };
+
+      localStorage.setItem(`game_save_slot_${slot}`, JSON.stringify(savePayload));
+      console.log(`💾 Game saved to slot ${slot}`);
+      playerController.showNotification(`Game saved to slot ${slot}!`, '#00FF00');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save game to slot:', error);
+      return false;
+    }
+  }
+
+  function loadGameFromSlot(slot) {
+    try {
+      const data = localStorage.getItem(`game_save_slot_${slot}`);
+      if (!data) {
+        console.log(`❌ No save data found in slot ${slot}`);
+        playerController.showNotification(`No save data in slot ${slot}!`, '#FF6B6B');
+        return false;
+      }
+
+      const saveData = JSON.parse(data);
+      
+      // Update player profile
+      if (saveData.playerProfile) {
+        playerProfile.updateFromServerData(saveData.playerProfile);
+      }
+      
+      // Update player position
+      if (saveData.playerPosition) {
+        gameState.player.x = saveData.playerPosition.x;
+        gameState.player.y = saveData.playerPosition.y;
+      }
+      
+      // Update game state
+      if (saveData.collectedRewards) {
+        gameState.collectedRewards = new Set(saveData.collectedRewards);
+      }
+      if (saveData.activeQuests) {
+        gameState.activeQuests = new Set(saveData.activeQuests);
+      }
+      if (saveData.completedQuests) {
+        gameState.completedQuests = new Set(saveData.completedQuests);
+      }
+      if (saveData.interactedNPCs) {
+        gameState.interactedNPCs = new Set(saveData.interactedNPCs);
+      }
+      if (saveData.questProgress) {
+        gameState.questProgress = saveData.questProgress;
+      }
+      if (saveData.playerDirection) {
+        gameState.playerDirection = saveData.playerDirection;
+      }
+      if (saveData.currentAnimation) {
+        gameState.currentAnimation = saveData.currentAnimation;
+      }
+      
+      console.log(`📥 Game loaded from slot ${slot}`);
+      playerController.showNotification(`Game loaded from slot ${slot}!`, '#00BFFF');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to load game from slot:', error);
+      return false;
+    }
+  }
+
+  function drawGearIcon() {
+    // Top-right gear icon
+    const gearX = canvas.width - 60;
+    const gearY = 20;
+    const gearSize = 40;
+
+    // Gear background circle
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.beginPath();
+    ctx.arc(gearX + gearSize/2, gearY + gearSize/2, gearSize/2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Gear border
+    ctx.strokeStyle = '#4A90E2';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(gearX + gearSize/2, gearY + gearSize/2, gearSize/2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Gear icon
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚙', gearX + gearSize/2, gearY + gearSize/2 + 8);
+
+    // Hover effect
+    if (gameState.gearHovered) {
+      ctx.fillStyle = 'rgba(74, 144, 226, 0.3)';
+      ctx.beginPath();
+      ctx.arc(gearX + gearSize/2, gearY + gearSize/2, gearSize/2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Reset text alignment
+    ctx.textAlign = 'left';
+  }
+
+  function drawSettings() {
+    // Only draw settings if toggled on
+    if (!gameState.showSettings) return;
+
+    // Draw overlay background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate center position
+    const menuWidth = 450; // Wider to accommodate timestamps
+    const menuHeight = 400; // Increased height for more options
+    const centerX = canvas.width / 2 - menuWidth / 2;
+    const centerY = canvas.height / 2 - menuHeight / 2;
+
+    // Draw settings menu background
+    ctx.fillStyle = 'rgba(20, 20, 20, 0.95)';
+    ctx.fillRect(centerX, centerY, menuWidth, menuHeight);
+
+    // Draw border
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(centerX, centerY, menuWidth, menuHeight);
+
+    // Title
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Save/Load Game', centerX + menuWidth/2, centerY + 35);
+
+    // Menu options
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+
+    const optionY = centerY + 60;
+    const lineHeight = 30; // Spacing adjusted for 8 options
+
+    // Create options array with slot information
+    const options = [];
+    
+    for (let slot = 1; slot <= 3; slot++) {
+      const slotInfo = getSaveSlotInfo(slot);
+      let saveText, loadText;
+      
+      if (slotInfo && slotInfo.exists) {
+        const date = new Date(slotInfo.timestamp);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const statusText = `LV${slotInfo.level} ${slotInfo.playerName} - ${dateStr} ${timeStr}`;
+        
+        saveText = { text: `💾 Save to Slot ${slot} (Overwrite)`, color: '#FFA500' };
+        loadText = { text: `📂 Load Slot ${slot}: ${statusText}`, color: '#00BFFF' };
+      } else {
+        saveText = { text: `💾 Save to Slot ${slot}`, color: '#00FF00' };
+        loadText = { text: `📂 Load Slot ${slot}: [EMPTY]`, color: '#666666' };
+      }
+      
+      options.push(saveText, loadText);
+    }
+    // Add New Game option
+    options.push({ text: '🆕 New Game', color: '#FF6B6B' });
+    // Add exit option
+    options.push({ text: '🚪 Exit Game', color: '#FF4444' });
+
+    // Draw each option with hover effect
+    for (let i = 0; i < options.length; i++) {
+      const isHovered = gameState.settingsHoverOption === i + 1;
+      const yPos = optionY + (i * lineHeight);
+
+      // Draw hover background
+      if (isHovered) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillRect(centerX + 10, yPos - 18, menuWidth - 20, 22);
+      }
+
+      // Draw option text
+      ctx.fillStyle = isHovered ? '#FFFFFF' : options[i].color;
+      ctx.fillText(options[i].text, centerX + 20, yPos);
+
+      // Draw arrow for hovered option
+      if (isHovered) {
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText('→', centerX + menuWidth - 30, yPos);
+      }
+    }
+
+    // Instructions
+    ctx.fillStyle = '#CCCCCC';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Click an option or press ESC to close', centerX + menuWidth/2, centerY + menuHeight - 20);
+    // Reset text alignment
+    ctx.textAlign = 'left';
+  }
+
   const gameState = new GameState();
   
   // Initialize debug logger (requires debug-logger.js to be loaded first)
@@ -1128,7 +1366,9 @@
     hint: '',
     reward: null,
     cursorPosition: 0,
-    showHint: false
+    showHint: false,
+    undoHistory: [], // Store previous states for undo
+    maxUndoHistory: 20 // Keep last 20 states
   };
   
   const playerProfile = new PlayerProfile();
@@ -1217,6 +1457,38 @@
     floatingTextManager.addText(text, x, y, color);
   };
   
+  // Helper functions for coding challenge undo functionality
+  function saveChallengeState() {
+    if (!currentChallenge.active) return;
+    
+    // Save current state
+    const state = {
+      code: currentChallenge.code,
+      cursorPosition: currentChallenge.cursorPosition
+    };
+    
+    // Add to history
+    currentChallenge.undoHistory.push(state);
+    
+    // Limit history size
+    if (currentChallenge.undoHistory.length > currentChallenge.maxUndoHistory) {
+      currentChallenge.undoHistory.shift();
+    }
+  }
+  
+  function undoChallengeState() {
+    if (!currentChallenge.active || currentChallenge.undoHistory.length === 0) return;
+    
+    // Get previous state
+    const previousState = currentChallenge.undoHistory.pop();
+    
+    // Restore state
+    currentChallenge.code = previousState.code;
+    currentChallenge.cursorPosition = previousState.cursorPosition;
+    
+    console.log('Undid to previous state, cursor at position:', currentChallenge.cursorPosition);
+  }
+  
   // Player Controller
   class PlayerController {
     constructor() {
@@ -1273,35 +1545,134 @@
                     currentChallenge.active = false;
                     e.preventDefault();
                     return;
+                } else if (key === 'z' && e.ctrlKey) {
+                    // Undo last action
+                    undoChallengeState();
+                    e.preventDefault();
+                    return;
+                } else if (key === 'arrowleft') {
+                    // Move cursor left
+                    if (currentChallenge.cursorPosition > 0) {
+                        currentChallenge.cursorPosition--;
+                    }
+                    e.preventDefault();
+                    return;
+                } else if (key === 'arrowright') {
+                    // Move cursor right
+                    if (currentChallenge.cursorPosition < currentChallenge.code.length) {
+                        currentChallenge.cursorPosition++;
+                    }
+                    e.preventDefault();
+                    return;
+                } else if (key === 'arrowup') {
+                    // Move cursor up one line
+                    const codeLines = currentChallenge.code.split('\n');
+                    let cursorLineIndex = 0;
+                    let cursorCharIndex = currentChallenge.cursorPosition;
+                    
+                    // Find current line
+                    for (let i = 0; i < codeLines.length; i++) {
+                        const lineLength = codeLines[i].length + 1;
+                        if (cursorCharIndex < lineLength) {
+                            cursorLineIndex = i;
+                            break;
+                        }
+                        cursorCharIndex -= lineLength;
+                    }
+                    
+                    if (cursorLineIndex > 0) {
+                        // Move to previous line
+                        const prevLineLength = codeLines[cursorLineIndex - 1].length;
+                        const newCharIndex = Math.min(cursorCharIndex, prevLineLength);
+                        
+                        // Calculate new cursor position
+                        let newCursorPos = 0;
+                        for (let i = 0; i < cursorLineIndex - 1; i++) {
+                            newCursorPos += codeLines[i].length + 1;
+                        }
+                        newCursorPos += newCharIndex;
+                        currentChallenge.cursorPosition = newCursorPos;
+                    }
+                    e.preventDefault();
+                    return;
+                } else if (key === 'arrowdown') {
+                    // Move cursor down one line
+                    const codeLines = currentChallenge.code.split('\n');
+                    let cursorLineIndex = 0;
+                    let cursorCharIndex = currentChallenge.cursorPosition;
+                    
+                    // Find current line
+                    for (let i = 0; i < codeLines.length; i++) {
+                        const lineLength = codeLines[i].length + 1;
+                        if (cursorCharIndex < lineLength) {
+                            cursorLineIndex = i;
+                            break;
+                        }
+                        cursorCharIndex -= lineLength;
+                    }
+                    
+                    if (cursorLineIndex < codeLines.length - 1) {
+                        // Move to next line
+                        const nextLineLength = codeLines[cursorLineIndex + 1].length;
+                        const newCharIndex = Math.min(cursorCharIndex, nextLineLength);
+                        
+                        // Calculate new cursor position
+                        let newCursorPos = 0;
+                        for (let i = 0; i < cursorLineIndex + 1; i++) {
+                            newCursorPos += codeLines[i].length + 1;
+                        }
+                        newCursorPos += newCharIndex;
+                        currentChallenge.cursorPosition = newCursorPos;
+                    }
+                    e.preventDefault();
+                    return;
                 } else if (key === 'enter') {
-                    // Add new line
-                    currentChallenge.code += '\n';
+                    // Add new line at cursor position
+                    saveChallengeState();
+                    const beforeCursor = currentChallenge.code.slice(0, currentChallenge.cursorPosition);
+                    const afterCursor = currentChallenge.code.slice(currentChallenge.cursorPosition);
+                    currentChallenge.code = beforeCursor + '\n' + afterCursor;
+                    currentChallenge.cursorPosition++;
                     e.preventDefault();
                     return;
                 } else if (key === 'backspace') {
-                    // Remove last character
-                    if (currentChallenge.code.length > 0) {
-                        currentChallenge.code = currentChallenge.code.slice(0, -1);
+                    // Remove character before cursor
+                    if (currentChallenge.cursorPosition > 0) {
+                        saveChallengeState();
+                        const beforeCursor = currentChallenge.code.slice(0, currentChallenge.cursorPosition - 1);
+                        const afterCursor = currentChallenge.code.slice(currentChallenge.cursorPosition);
+                        currentChallenge.code = beforeCursor + afterCursor;
+                        currentChallenge.cursorPosition--;
                     }
                     e.preventDefault();
                     return;
                 } else if (key === 'tab') {
-                    // Add tab (2 spaces)
-                    currentChallenge.code += '  ';
+                    // Add tab (2 spaces) at cursor position
+                    saveChallengeState();
+                    const beforeCursor = currentChallenge.code.slice(0, currentChallenge.cursorPosition);
+                    const afterCursor = currentChallenge.code.slice(currentChallenge.cursorPosition);
+                    currentChallenge.code = beforeCursor + '  ' + afterCursor;
+                    currentChallenge.cursorPosition += 2;
                     e.preventDefault();
                     return;
-                } else if (e.key.length === 1) {
-                    // Add regular character
-                    currentChallenge.code += e.key;
+                } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+                    // Add regular character at cursor position (but not when Ctrl/Meta is held)
+                    saveChallengeState();
+                    const beforeCursor = currentChallenge.code.slice(0, currentChallenge.cursorPosition);
+                    const afterCursor = currentChallenge.code.slice(currentChallenge.cursorPosition);
+                    currentChallenge.code = beforeCursor + e.key + afterCursor;
+                    currentChallenge.cursorPosition++;
                     e.preventDefault();
                     return;
                 }
             }
             
-            // Handle lesson dialogue
-            if (currentLesson.active && key === 'enter') {
-                currentLesson.currentPart++;
-                if (currentLesson.currentPart >= currentLesson.parts.length) {
+            // Block all movement keys during lesson dialogue
+            if (currentLesson.active) {
+                // Only allow Enter to progress through lesson
+                if (key === 'enter') {
+                    currentLesson.currentPart++;
+                    if (currentLesson.currentPart >= currentLesson.parts.length) {
                     // Lesson completed
                     currentLesson.active = false;
                     gameState.interactedNPCs.add(`lesson_${currentLesson.questId}`);
@@ -1336,9 +1707,23 @@
                         playerController.showQuestNotification('Lesson complete! Return to the quest for the quiz.', '#4A90E2');
                     }
                     currentLesson.npcImage = null;
+                    }
+                    e.preventDefault();
+                    return;
                 }
+                // Block all other keys during lesson
                 e.preventDefault();
                 return;
+            }
+            
+            // Block all keys during dialogue (except ESC to close)
+            if (gameState.showingDialogue) {
+                if (key === 'escape') {
+                    this.keys.escape = true;
+                    this.handleEscapeKey();
+                    e.preventDefault();
+                }
+                return; // Block all other keys during dialogue
             }
             
             // Handle special keys
@@ -1390,6 +1775,50 @@
             } else if (this.keys.hasOwnProperty(key)) {
                 this.keys[key] = false;
                 console.log('Key up:', key, this.keys);
+            }
+        });
+
+        // Add copy event listener for coding challenges
+        window.addEventListener('copy', (e) => {
+            // Only handle copy when coding challenge is active
+            if (currentChallenge.active && e.clipboardData) {
+                // Copy all selected text (for now, just copy the whole code)
+                e.clipboardData.setData('text/plain', currentChallenge.code);
+                e.preventDefault();
+                console.log('Copied code to clipboard');
+            }
+        });
+
+        // Add cut event listener for coding challenges
+        window.addEventListener('cut', (e) => {
+            // Only handle cut when coding challenge is active
+            if (currentChallenge.active && e.clipboardData) {
+                // Copy all text and then clear the code
+                e.clipboardData.setData('text/plain', currentChallenge.code);
+                currentChallenge.code = '';
+                currentChallenge.cursorPosition = 0;
+                e.preventDefault();
+                console.log('Cut code to clipboard and cleared editor');
+            }
+        });
+
+        // Add paste event listener for coding challenges
+        window.addEventListener('paste', (e) => {
+            // Only handle paste when coding challenge is active
+            if (currentChallenge.active) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                if (pastedText) {
+                    // Save state before pasting
+                    saveChallengeState();
+                    // Insert pasted text at cursor position
+                    const beforeCursor = currentChallenge.code.slice(0, currentChallenge.cursorPosition);
+                    const afterCursor = currentChallenge.code.slice(currentChallenge.cursorPosition);
+                    currentChallenge.code = beforeCursor + pastedText + afterCursor;
+                    // Move cursor to end of pasted text
+                    currentChallenge.cursorPosition += pastedText.length;
+                    console.log('Pasted text into coding challenge:', pastedText.length, 'characters at position', currentChallenge.cursorPosition);
+                }
             }
         });
     }
@@ -2492,12 +2921,22 @@
     }
     
     handlePKey() {
+        // Disable HUD toggling during interactions
+        if (currentQuiz.active || currentChallenge.active || gameState.showingDialogue) {
+            return;
+        }
+        
         // Toggle HUD visibility
         gameState.showHUD = !gameState.showHUD;
         console.log('HUD toggled:', gameState.showHUD ? 'ON' : 'OFF');
     }
     
     handleMKey() {
+        // Disable settings toggling during interactions
+        if (currentQuiz.active || currentChallenge.active || gameState.showingDialogue) {
+            return;
+        }
+        
         // Toggle settings menu
         gameState.showSettings = !gameState.showSettings;
         console.log('Settings menu toggled:', gameState.showSettings ? 'ON' : 'OFF');
@@ -2505,96 +2944,81 @@
     
     handleSettingsOption(option) {
         switch(option) {
-            case '1':
-                this.saveGame();
+            case '1': // Save to Slot 1
+                saveGameToSlot(1);
                 break;
-            case '2':
-                this.loadGame();
+            case '2': // Load Slot 1
+                loadGameFromSlot(1);
                 break;
-            case '3':
-                this.deleteSave();
+            case '3': // Save to Slot 2
+                saveGameToSlot(2);
                 break;
-            case '4':
-                this.exitGame();
+            case '4': // Load Slot 2
+                loadGameFromSlot(2);
+                break;
+            case '5': // Save to Slot 3
+                saveGameToSlot(3);
+                break;
+            case '6': // Load Slot 3
+                loadGameFromSlot(3);
+                break;
+            case '7': // New Game
+                this.startNewGame();
+                break;
+            case '8': // Exit Game
+                console.log('🚪 Exit Game - returning to main map');
+                window.location.href = '/';
                 break;
         }
         gameState.showSettings = false; // Close menu after selection
     }
     
-    async saveGame() {
+    async loadGameFromSlot(slot) {
         try {
-            // Validate player object exists
-            if (!player) {
-                throw new Error('Player object not initialized');
-            }
-
-            // Ensure all required data is properly formatted
-            // Note: Collision overrides are now saved globally, not per-user
-            
-            const saveData = {
-                playerName: playerProfile.playerName || 'Unknown Player',
-                inGameName: playerProfile.inGameName || null,
-                pixelCoins: Number(playerProfile.pixelCoins) || 0,
-                experience: Number(playerProfile.experience) || 0,
-                level: Number(playerProfile.level) || 1,
-                badges: Array.isArray(playerProfile.badges) ? playerProfile.badges : [],
-                achievements: Array.isArray(playerProfile.achievements) ? playerProfile.achievements : [],
-                gameStats: {
-                    monstersDefeated: Number(playerProfile.gameStats?.monstersDefeated) || 0,
-                    questsCompleted: Number(playerProfile.gameStats?.questsCompleted) || 0,
-                    codeLinesWritten: Number(playerProfile.gameStats?.codeLinesWritten) || 0,
-                    playTime: Number(playerProfile.gameStats?.playTime) || 0
-                },
-                playerPosition: { 
-                    x: Number(player.x) || 0, 
-                    y: Number(player.y) || 0 
-                },
-                collectedRewards: Array.from(gameState.collectedRewards || []),
-                activeQuests: Array.from(gameState.activeQuests || []),
-                completedQuests: Array.from(gameState.completedQuests || []),
-                interactedNPCs: Array.from(gameState.interactedNPCs || []),
-                questProgress: gameState.questProgress || {},
-                playerDirection: gameState.playerDirection || 'right',
-                currentAnimation: gameState.currentAnimation || 'idle',
-                savedAt: new Date().toISOString()
-            };
-            
-            console.log('💾 Saving game to server (player account)...');
-            
-            // Save ONLY to server/database (no localStorage)
-            const response = await fetch('/game/save', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(saveData)
-            });
-            
-            console.log('📡 Server response status:', response.status);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Server error response:', errorText);
-                throw new Error(`Server save failed: ${response.status} - ${errorText}`);
+            const saveData = localStorage.getItem(`game-save-${slot}`);
+            if (!saveData) {
+                console.log(`No save data in slot ${slot}!`);
+                return false;
             }
             
-            const result = await response.json();
-            console.log('📡 Server response data:', result);
+            const data = JSON.parse(saveData);
             
-            if (!result.success) {
-                throw new Error(result.message || 'Unknown server error');
+            // Restore player profile
+            playerProfile.playerName = data.playerName || 'Unknown Player';
+            playerProfile.inGameName = data.inGameName || null; // Restore in-game name
+            playerProfile.pixelCoins = data.pixelCoins || 0;
+            playerProfile.experience = data.experience || 0;
+            playerProfile.level = data.level || 1;
+            playerProfile.badges = data.badges || [];
+            playerProfile.achievements = data.achievements || [];
+            playerProfile.gameStats = data.gameStats || playerProfile.gameStats;
+            
+            // Restore player position
+            if (data.playerPosition && player) {
+                player.x = data.playerPosition.x;
+                player.y = data.playerPosition.y;
             }
             
-            this.showNotification('Game Saved to Your Account!', '#00FF00');
-            console.log('✅ Game saved to player account successfully');
+            // Restore game state
+            gameState.collectedRewards = new Set(data.collectedRewards || []);
+            gameState.activeQuests = new Set(data.activeQuests || []);
+            gameState.completedQuests = new Set(data.completedQuests || []);
+            gameState.interactedNPCs = new Set(data.interactedNPCs || []);
+            gameState.questProgress = data.questProgress || {};
+            gameState.playerDirection = data.playerDirection || 'right';
+            gameState.currentAnimation = data.currentAnimation || 'idle';
+            
+            console.log(`✅ Loaded game from slot ${slot} in local storage`);
+            
+            return true;
         } catch (error) {
-            console.error('❌ Failed to save game to account:', error);
-            this.showNotification('Save Failed: ' + error.message, '#FF4444');
+            console.error(`❌ Failed to load game from slot ${slot}:`, error);
+            return false;
         }
     }
-    
+
     async loadGame() {
+        // ...
         try {
             console.log('📥 Loading game from player account...');
             
@@ -2641,6 +3065,22 @@
             if (saveData.playerPosition && player) {
                 player.x = saveData.playerPosition.x;
                 player.y = saveData.playerPosition.y;
+                console.log('📍 Player position restored from save:', saveData.playerPosition);
+            } else if (player) {
+                // No saved position (new game) - set to spawn point
+                console.log('🎯 No saved position found, finding spawn point...');
+                const spawn = MapRenderer.findPlayerStart();
+                console.log('🎯 Spawn point found:', spawn);
+                if (spawn) {
+                    player.x = spawn.x;
+                    player.y = spawn.y;
+                    console.log('🎯 Player set to spawn point:', spawn);
+                } else {
+                    // Fallback if no spawn point found
+                    player.x = 32;
+                    player.y = 32;
+                    console.log('⚠️ No spawn point found - using fallback position: (32, 32)');
+                }
             }
             
             // Restore game state
@@ -2752,14 +3192,85 @@
         }, 3000);
     }
     
+    startNewGame() {
+        console.log('🆕 Starting new game...');
+        
+        // Confirm with user
+        if (!confirm('Are you sure you want to start a new game? All progress will be lost! (Your saved slots will remain intact)')) {
+            console.log('❌ User cancelled new game');
+            return;
+        }
+        
+        console.log('✅ User confirmed new game - proceeding...');
+        
+        // Clear character selection from session
+        sessionStorage.removeItem('selectedAvatar');
+        sessionStorage.removeItem('selectedCharacterType');
+        
+        // Reset player profile to initial state
+        const resetData = {
+            playerName: playerProfile.playerName, // Keep the player's name
+            inGameName: playerProfile.inGameName, // Keep the in-game name
+            pixelCoins: 0,
+            experience: 0,
+            level: 1,
+            badges: [],
+            achievements: [],
+            gameStats: {
+                monstersDefeated: 0,
+                questsCompleted: 0,
+                codeLinesWritten: 0,
+                playTime: 0
+            },
+            playerPosition: { x: -521, y: 975.666666666667 }, // Spawn point from map1.tmj
+            collectedRewards: [],
+            activeQuests: [],
+            completedQuests: [],
+            interactedNPCs: [],
+            questProgress: {},
+            playerDirection: 'right',
+            currentAnimation: 'idle',
+            selectedAvatar: null, // Clear character sprite
+            selectedCharacterType: null
+        };
+        
+        console.log('💾 Saving reset data to server...');
+        console.log('📦 Reset data being sent:', resetData);
+        
+        // Save the reset state to server
+        fetch('/game/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(resetData)
+        }).then(response => {
+            console.log('📡 Server response status:', response.status);
+            return response.json();
+        }).then(result => {
+            console.log('📡 Server response:', result);
+            if (result.success) {
+                console.log('✅ New game state saved to server');
+            }
+            console.log('🔄 Redirecting to /character-selection for full new game sequence...');
+            // Redirect to /character-selection which will trigger the full sequence: character selection -> prologue -> game
+            window.location.href = '/character-selection';
+        }).catch(err => {
+            console.error('❌ Failed to save new game state:', err);
+            console.log('🔄 Redirecting to /character-selection anyway for full new game sequence...');
+            // Redirect to /character-selection which will trigger the full sequence: character selection -> prologue -> game
+            window.location.href = '/character-selection';
+        });
+    }
+    
     handleMovement(deltaTime = 16) {
         if (!player) {
             console.warn('No player object available');
             return;
         }
         
-        // Disable movement when quiz or challenge is active
-        if (currentQuiz.active || currentChallenge.active) {
+        // Disable movement when quiz, challenge, or dialogue is active
+        if (currentQuiz.active || currentChallenge.active || gameState.showingDialogue) {
             gameState.isMoving = false;
             gameState.currentAnimation = 'idle';
             return;
@@ -3590,6 +4101,17 @@ class AnimationManager {
   // Debug key handling
   window.addEventListener('keydown', e => { 
     if (e.key==='c' || e.key==='C') {
+      // Disable debug toggling during interactions
+      if (currentQuiz.active || currentChallenge.active || gameState.showingDialogue || currentLesson.active) {
+        return;
+      }
+      
+      // Restrict debug mode to admin users only
+      if (!isUserAdmin()) {
+        console.log('⚠️ Debug mode is restricted to admin users only');
+        return;
+      }
+      
       // Use the new toggleDebugMode if available, otherwise fallback to old method
       if (typeof window !== 'undefined' && window.toggleDebugMode && debugLogger) {
         // New unified toggle - handles both debug mode and collision debug
@@ -3612,6 +4134,19 @@ class AnimationManager {
     
     // Add TAB key handling for collision debug (consistent with tutorial)
     if (e.key === 'Tab') {
+      // Disable debug toggling during interactions
+      if (currentQuiz.active || currentChallenge.active || gameState.showingDialogue || currentLesson.active) {
+        e.preventDefault();
+        return;
+      }
+      
+      // Restrict debug mode to admin users only
+      if (!isUserAdmin()) {
+        e.preventDefault();
+        console.log('⚠️ Debug mode is restricted to admin users only');
+        return;
+      }
+      
       e.preventDefault(); // Prevent tab navigation
       
       // Use the new toggleDebugMode if available, otherwise fallback to old method
@@ -3638,11 +4173,13 @@ class AnimationManager {
     }
   });
 
-  // Mouse event handling for settings gear and quiz
+  // Mouse event handling for collision tile toggling, enemy interaction, and settings
   canvas.addEventListener('click', async (e) => {
     const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
     
     // Handle collision tile toggle in debug mode (ADMIN ONLY - check first, before other UI)
     if (gameState.debugMode && !currentQuiz.active && !currentChallenge.active && !currentLesson.active) {
@@ -3896,8 +4433,6 @@ class AnimationManager {
         console.log('🏃 Player ran away from coding challenge');
         return;
       }
-      
-      return;
     }
     
     // Check if clicked on top-right gear icon
@@ -3916,34 +4451,19 @@ class AnimationManager {
     
     // Handle settings menu clicks
     if (gameState.showSettings) {
-      const menuWidth = 350;
-      const menuHeight = 320;
+      const menuWidth = 450; // Updated width to match drawSettings
+      const menuHeight = 350; // Updated height to match drawSettings
       const centerX = canvas.width / 2 - menuWidth / 2;
       const centerY = canvas.height / 2 - menuHeight / 2;
-      
-      // Check volume slider click
-      const sliderX = centerX + 20;
-      const sliderY = centerY + 80;
-      const sliderWidth = menuWidth - 40;
-      const sliderHeight = 10;
-      
-      if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth &&
-          mouseY >= sliderY - 10 && mouseY <= sliderY + sliderHeight + 10) {
-        // Calculate new volume based on click position
-        const newVolume = (mouseX - sliderX) / sliderWidth;
-        gameMusicManager.setVolume(newVolume);
-        return;
-      }
-      
-      const optionY = centerY + 130;
-      const lineHeight = 35;
-      
+      const optionY = centerY + 70;
+      const lineHeight = 25; // Updated line height to match drawSettings
+
       // Check which option was clicked
       if (mouseX >= centerX + 20 && mouseX <= centerX + menuWidth - 20) {
-        for (let i = 0; i < 4; i++) {
-          const optionTop = optionY + (i * lineHeight) - 20;
-          const optionBottom = optionY + (i * lineHeight) + 5;
-          
+        for (let i = 0; i < 7; i++) { // Now 7 options instead of 4
+          const optionTop = optionY + (i * lineHeight) - 18;
+          const optionBottom = optionY + (i * lineHeight) + 4;
+
           if (mouseY >= optionTop && mouseY <= optionBottom) {
             playerController.handleSettingsOption((i + 1).toString());
             break;
@@ -3953,14 +4473,16 @@ class AnimationManager {
     }
   });
 
-  // Mouse move handling for settings hover and quiz options
+  // Mouse move event handling for hover effects
   canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
     
-    // Collision tile hover detection in debug mode
-    if (gameState.debugMode && !currentQuiz.active && !currentChallenge.active && !currentLesson.active && !gameState.showSettings) {
+    // Handle debug mode tile hovering
+    if (gameState.debugMode && !currentQuiz.active && !currentChallenge.active && !currentLesson.active) {
       // Account for camera zoom when converting screen to world coordinates
       const zoom = camera.zoom || 1.0;
       const worldX = (mouseX / zoom) + camera.x;
@@ -3975,7 +4497,8 @@ class AnimationManager {
         const tileX = Math.floor(worldX / tileW);
         const tileY = Math.floor(worldY / tileH);
         
-        hoveredTile = null; // Reset
+        // Hovered tile for debug mode
+        let hoveredTile = null; // Reset
         
         // Check if hovering over a collision tile
         for (const layer of mapData.layers) {
@@ -4037,20 +4560,20 @@ class AnimationManager {
     // Settings hover detection
     if (!gameState.showSettings) return;
     
-    const menuWidth = 350;
-    const menuHeight = 320;
+    const menuWidth = 450; // Updated width to match drawSettings
+    const menuHeight = 350; // Updated height to match drawSettings
     const centerX = canvas.width / 2 - menuWidth / 2;
     const centerY = canvas.height / 2 - menuHeight / 2;
-    const optionY = centerY + 130;
-    const lineHeight = 35;
+    const optionY = centerY + 70;
+    const lineHeight = 25; // Updated line height to match drawSettings
     
     gameState.settingsHoverOption = 0; // Reset hover
     
     // Check which option is being hovered
     if (mouseX >= centerX + 20 && mouseX <= centerX + menuWidth - 20) {
-      for (let i = 0; i < 4; i++) {
-        const optionTop = optionY + (i * lineHeight) - 20;
-        const optionBottom = optionY + (i * lineHeight) + 5;
+      for (let i = 0; i < 7; i++) { // Now 7 options instead of 4
+        const optionTop = optionY + (i * lineHeight) - 18;
+        const optionBottom = optionY + (i * lineHeight) + 4;
         
         if (mouseY >= optionTop && mouseY <= optionBottom) {
           gameState.settingsHoverOption = i + 1;
@@ -4058,6 +4581,17 @@ class AnimationManager {
         }
       }
     }
+    
+    // Gear icon hover detection
+    const gearX = canvas.width - 60;
+    const gearY = 20;
+    const gearSize = 40;
+    const gearCenterX = gearX + gearSize/2;
+    const gearCenterY = gearY + gearSize/2;
+    const distance = Math.sqrt(Math.pow(mouseX - gearCenterX, 2) + Math.pow(mouseY - gearCenterY, 2));
+    gameState.gearHovered = distance <= gearSize/2;
+    
+    canvas.style.cursor = gameState.gearHovered ? 'pointer' : 'default';
   });
 
   function resizeCanvas(){
@@ -4327,8 +4861,8 @@ class AnimationManager {
     // Draw NPCs, quests, and rewards
     MapRenderer.drawMapObjects(ctx, camera, canvas, gameState, player);
     
-    // Draw collision debug overlay if debug mode is enabled
-    if (gameState.debugMode) {
+    // Draw collision debug overlay if debug mode is enabled (but not during interactions, and only for admins)
+    if (gameState.debugMode && !currentQuiz.active && !currentChallenge.active && !gameState.showingDialogue && !currentLesson.active && isUserAdmin()) {
       drawCollisionDebugOverlay();
       
       // Draw player sprite bounds (full size) in light red
@@ -4373,7 +4907,7 @@ class AnimationManager {
     ctx.restore(); // Restore scale before drawing HUD
     
     // Draw collision debug indicator (after ctx.restore so it's not affected by zoom)
-    if (gameState.debugMode) {
+    if (gameState.debugMode && !currentQuiz.active && !currentChallenge.active && !gameState.showingDialogue && !currentLesson.active && isUserAdmin()) {
       ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
       ctx.lineWidth = 2;
@@ -4871,12 +5405,36 @@ class AnimationManager {
       codeY += 18;
     }
     
-    // Draw blinking cursor at end of last line
+    // Draw blinking cursor at correct position based on cursorPosition
     const cursorBlink = Math.floor(Date.now() / 500) % 2; // Blink every 500ms
     if (cursorBlink === 0) {
       ctx.fillStyle = '#FFD700';
-      const cursorX = termX + 50 + ctx.measureText(lastLineText).width;
-      ctx.fillRect(cursorX, lastLineY - 12, 2, 14);
+      
+      // Calculate cursor position
+      let cursorLineIndex = 0;
+      let cursorCharIndex = currentChallenge.cursorPosition;
+      const codeLines = code.split('\n');
+      
+      // Find which line the cursor is on
+      for (let i = 0; i < codeLines.length; i++) {
+        const lineLength = codeLines[i].length + 1; // +1 for newline
+        if (cursorCharIndex < lineLength) {
+          cursorLineIndex = i;
+          break;
+        }
+        cursorCharIndex -= lineLength;
+      }
+      
+      // If cursor is at end of text, put it on the last line
+      if (cursorCharIndex >= codeLines[cursorLineIndex].length) {
+        cursorCharIndex = codeLines[cursorLineIndex].length;
+      }
+      
+      // Calculate cursor position
+      const cursorY = editorY + 25 + (cursorLineIndex * 18) - 12;
+      const cursorX = termX + 50 + ctx.measureText(codeLines[cursorLineIndex].substring(0, cursorCharIndex)).width;
+      
+      ctx.fillRect(cursorX, cursorY, 2, 14);
     }
     
     // Output area
@@ -4960,7 +5518,7 @@ class AnimationManager {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.font = '11px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Type to edit code | ENTER for new line | BACKSPACE to delete', termX + termWidth/2, termY + termHeight - 10);
+    ctx.fillText('Type to edit code | Ctrl+Z undo | Ctrl+C/V/X clipboard | ENTER for new line | BACKSPACE to delete | ARROW KEYS to move cursor', termX + termWidth/2, termY + termHeight - 10);
   }
 
   function drawHUD() {
@@ -5182,113 +5740,214 @@ class AnimationManager {
   function drawSettings() {
     // Only draw settings if toggled on
     if (!gameState.showSettings) return;
-    
+
     // Draw overlay background
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     // Calculate center position
-    const menuWidth = 350;
-    const menuHeight = 320;
+    const menuWidth = 450; // Wider to accommodate timestamps
+    const menuHeight = 400; // Increased height for more options
     const centerX = canvas.width / 2 - menuWidth / 2;
     const centerY = canvas.height / 2 - menuHeight / 2;
-    
+
     // Draw settings menu background
     ctx.fillStyle = 'rgba(20, 20, 20, 0.95)';
     ctx.fillRect(centerX, centerY, menuWidth, menuHeight);
-    
+
     // Draw border
     ctx.strokeStyle = '#FFD700';
     ctx.lineWidth = 3;
     ctx.strokeRect(centerX, centerY, menuWidth, menuHeight);
-    
+
     // Title
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Settings', centerX + menuWidth/2, centerY + 35);
-    
-    // Volume Control Section
+    ctx.fillText('Save/Load Game', centerX + menuWidth/2, centerY + 35);
+
+    // Menu options
     ctx.font = '16px Arial';
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText('Music Volume', centerX + 20, centerY + 70);
+
+    const optionY = centerY + 60;
+    const lineHeight = 30; // Spacing adjusted for 8 options
+
+    // Create options array with slot information
+    const options = [];
     
-    // Volume slider background
-    const sliderX = centerX + 20;
-    const sliderY = centerY + 80;
-    const sliderWidth = menuWidth - 40;
-    const sliderHeight = 10;
+    for (let slot = 1; slot <= 3; slot++) {
+      const slotInfo = getSaveSlotInfo(slot);
+      let saveText, loadText;
+      
+      if (slotInfo && slotInfo.exists) {
+        const date = new Date(slotInfo.timestamp);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const statusText = `LV${slotInfo.level} ${slotInfo.playerName} - ${dateStr} ${timeStr}`;
+        
+        saveText = { text: `💾 Save to Slot ${slot} (Overwrite)`, color: '#FFA500' };
+        loadText = { text: `📂 Load Slot ${slot}: ${statusText}`, color: '#00BFFF' };
+      } else {
+        saveText = { text: `💾 Save to Slot ${slot}`, color: '#00FF00' };
+        loadText = { text: `📂 Load Slot ${slot}: [EMPTY]`, color: '#666666' };
+      }
+      
+      options.push(saveText, loadText);
+    }
+    // Add New Game option
+    options.push({ text: '🆕 New Game', color: '#FF6B6B' });
     
-    ctx.fillStyle = 'rgba(100, 100, 100, 0.5)';
-    ctx.fillRect(sliderX, sliderY, sliderWidth, sliderHeight);
-    
-    // Volume slider fill
-    const volumePercent = gameMusicManager.getVolume();
-    ctx.fillStyle = '#4A90E2';
-    ctx.fillRect(sliderX, sliderY, sliderWidth * volumePercent, sliderHeight);
-    
-    // Volume slider handle
-    const handleX = sliderX + (sliderWidth * volumePercent);
-    ctx.fillStyle = '#FFD700';
-    ctx.beginPath();
-    ctx.arc(handleX, sliderY + sliderHeight/2, 8, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Volume percentage text
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(Math.round(volumePercent * 100) + '%', centerX + menuWidth/2, sliderY + sliderHeight/2 + 4);
-    
-    // Menu options
-    ctx.font = '18px Arial';
-    ctx.textAlign = 'left';
-    
-    const optionY = centerY + 130;
-    const lineHeight = 35;
-    
-    const options = [
-      { text: 'Save Game', color: '#00FF00' },
-      { text: 'Load Game', color: '#00BFFF' },
-      { text: 'Delete Save', color: '#FF6B6B' },
-      { text: 'Exit Game', color: '#FF4444' }
-    ];
-    
+    // Add exit option
+    options.push({ text: '🚪 Exit Game', color: '#FF4444' });
+
     // Draw each option with hover effect
     for (let i = 0; i < options.length; i++) {
       const isHovered = gameState.settingsHoverOption === i + 1;
       const yPos = optionY + (i * lineHeight);
-      
+
       // Draw hover background
       if (isHovered) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.fillRect(centerX + 10, yPos - 20, menuWidth - 20, 25);
+        ctx.fillRect(centerX + 10, yPos - 18, menuWidth - 20, 22);
       }
-      
+
       // Draw option text
       ctx.fillStyle = isHovered ? '#FFFFFF' : options[i].color;
       ctx.fillText(options[i].text, centerX + 20, yPos);
-      
+
       // Draw arrow for hovered option
       if (isHovered) {
         ctx.fillStyle = '#FFD700';
-        ctx.fillText('→', centerX + 250, yPos);
+        ctx.fillText('→', centerX + menuWidth - 30, yPos);
       }
     }
-    
+
     // Instructions
     ctx.fillStyle = '#CCCCCC';
-    ctx.font = '14px Arial';
+    ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Hover and click to select option', centerX + menuWidth/2, centerY + menuHeight - 40);
-    ctx.fillText('Press ESC, M, or click gear to close', centerX + menuWidth/2, centerY + menuHeight - 20);
-    
+    ctx.fillText('Click an option or press ESC to close', centerX + menuWidth/2, centerY + menuHeight - 20);
     // Reset text alignment
     ctx.textAlign = 'left';
   }
 
-  // drawMapObjects is now in MapRenderer module
+  // Save/Load Game Slots System
+  function saveGameToSlot(slot) {
+    if (!player || !gameState || !playerProfile) {
+      console.error('❌ Cannot save game - game not initialized');
+      return false;
+    }
+
+    try {
+      const saveData = {
+        player: {
+          x: player.x,
+          y: player.y,
+          direction: gameState.playerDirection || 'right',
+          animation: gameState.currentAnimation || 'idle',
+          sprite: player.sprite || null,
+          characterType: sessionStorage.getItem('selectedCharacterType') || null
+        },
+        playerProfile: {
+          playerName: playerProfile.playerName,
+          inGameName: playerProfile.inGameName,
+          pixelCoins: playerProfile.pixelCoins,
+          experience: playerProfile.experience,
+          level: playerProfile.level,
+          badges: [...playerProfile.badges],
+          gameStats: {...playerProfile.gameStats}
+        },
+        gameState: {
+          collectedRewards: [...gameState.collectedRewards],
+          activeQuests: [...gameState.activeQuests],
+          completedQuests: [...gameState.completedQuests],
+          interactedNPCs: [...gameState.interactedNPCs],
+          questProgress: {...gameState.questProgress}
+        },
+        timestamp: Date.now()
+      };
+
+      localStorage.setItem(`game_save_slot_${slot}`, JSON.stringify(saveData));
+      console.log(`💾 Game saved to slot ${slot} at ${new Date(saveData.timestamp).toLocaleString()}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save game:', error);
+      return false;
+    }
+  }
+
+  function loadGameFromSlot(slot) {
+    try {
+      const data = localStorage.getItem(`game_save_slot_${slot}`);
+      if (!data) {
+        console.log(`ℹ️ No save data found in slot ${slot}`);
+        return false;
+      }
+
+      const saveData = JSON.parse(data);
+      console.log(`📥 Loading game from slot ${slot} (saved ${new Date(saveData.timestamp).toLocaleString()})`);
+
+      // Restore player data
+      if (saveData.player) {
+        if (typeof saveData.player.x === 'number') player.x = saveData.player.x;
+        if (typeof saveData.player.y === 'number') player.y = saveData.player.y;
+        if (saveData.player.direction) gameState.playerDirection = saveData.player.direction;
+        if (saveData.player.animation) gameState.currentAnimation = saveData.player.animation;
+        
+        // Restore character sprite
+        if (saveData.player.sprite) {
+          player.sprite = saveData.player.sprite;
+        }
+        if (saveData.player.characterType) {
+          sessionStorage.setItem('selectedCharacterType', saveData.player.characterType);
+        }
+      }
+
+      // Restore player profile
+      if (saveData.playerProfile) {
+        if (saveData.playerProfile.playerName) playerProfile.playerName = saveData.playerProfile.playerName;
+        if (saveData.playerProfile.inGameName) playerProfile.inGameName = saveData.playerProfile.inGameName;
+        if (typeof saveData.playerProfile.pixelCoins === 'number') playerProfile.pixelCoins = saveData.playerProfile.pixelCoins;
+        if (typeof saveData.playerProfile.experience === 'number') playerProfile.experience = saveData.playerProfile.experience;
+        if (typeof saveData.playerProfile.level === 'number') playerProfile.level = saveData.playerProfile.level;
+        if (Array.isArray(saveData.playerProfile.badges)) playerProfile.badges = saveData.playerProfile.badges;
+        if (saveData.playerProfile.gameStats) playerProfile.gameStats = saveData.playerProfile.gameStats;
+      }
+
+      // Restore game state
+      if (saveData.gameState) {
+        if (Array.isArray(saveData.gameState.collectedRewards)) gameState.collectedRewards = new Set(saveData.gameState.collectedRewards);
+        if (Array.isArray(saveData.gameState.activeQuests)) gameState.activeQuests = new Set(saveData.gameState.activeQuests);
+        if (Array.isArray(saveData.gameState.completedQuests)) gameState.completedQuests = new Set(saveData.gameState.completedQuests);
+        if (Array.isArray(saveData.gameState.interactedNPCs)) gameState.interactedNPCs = new Set(saveData.gameState.interactedNPCs);
+        if (saveData.gameState.questProgress) gameState.questProgress = saveData.gameState.questProgress;
+      }
+
+      console.log(`✅ Game loaded from slot ${slot}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to load game from slot ${slot}:`, error);
+      return false;
+    }
+  }
+
+  function getSaveSlotInfo(slot) {
+    const data = localStorage.getItem(`game_save_slot_${slot}`);
+    if (!data) return null;
+
+    try {
+      const saveData = JSON.parse(data);
+      return {
+        exists: true,
+        timestamp: saveData.timestamp,
+        level: saveData.playerProfile?.level || 1,
+        playerName: saveData.playerProfile?.playerName || 'Unknown'
+      };
+    } catch (error) {
+      return null;
+    }
+  }
 
   function drawAnimatedPlayer(){
     if (!animationManager) {
@@ -5605,6 +6264,12 @@ class AnimationManager {
           gameState.currentAnimation = saveData.currentAnimation;
         }
         
+        // Skip Quest 1 if in-game name is already set
+        if (playerProfile.inGameName) {
+          gameState.completedQuests.add(286);
+          console.log('⏭️ Skipping Quest 1 - name already set:', playerProfile.inGameName);
+        }
+        
         // Note: Collision overrides are now loaded globally at game start, not per-user
         
         console.log('✅ Game state restored from player account');
@@ -5844,11 +6509,11 @@ class AnimationManager {
       console.log('⏭️ Skipping auto-save because save is being deleted');
       return;
     }
-    
+
     if (playerProfile) {
       playerProfile.stopPlayTimeTracking();
-      // Save one last time before leaving
-      playerProfile.saveToServer();
+      // Auto-save removed - players must now save manually
+      console.log('⏱️ Play time tracking stopped - manual save required');
     }
   });
 

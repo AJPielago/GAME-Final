@@ -89,6 +89,49 @@ const questDialogues = {
   }
 };
 
+// Helper function to get player level
+function getPlayerLevel() {
+  // Try different possible global variables where player data might be stored
+  if (window.playerData && window.playerData.level) {
+    return window.playerData.level;
+  }
+  if (window.gameData && window.gameData.player && window.gameData.player.level) {
+    return window.gameData.player.level;
+  }
+  if (window.gameState && window.gameState.level) {
+    return window.gameState.level;
+  }
+  // Check PlayerProfile instance if available
+  if (window.playerProfile && window.playerProfile.level) {
+    return window.playerProfile.level;
+  }
+  // Default to level 1 if data not available
+  console.warn('⚠️ Player level data not found, defaulting to level 1');
+  return 1;
+}
+
+// Helper function to get player's completed quests
+function getPlayerCompletedQuests() {
+  // Try different possible global variables where quest data might be stored
+  if (window.playerData && window.playerData.completedQuests) {
+    return window.playerData.completedQuests;
+  }
+  if (window.gameData && window.gameData.player && window.gameData.player.completedQuests) {
+    return window.gameData.player.completedQuests;
+  }
+  if (window.gameState && window.gameState.completedQuests) {
+    // gameState.completedQuests is a Set, convert to array
+    return Array.from(window.gameState.completedQuests || []);
+  }
+  // Check PlayerProfile instance if available
+  if (window.playerProfile && window.playerProfile.completedQuests) {
+    return window.playerProfile.completedQuests;
+  }
+  // Default to empty array if data not available
+  console.warn('⚠️ Player completed quests data not found, defaulting to empty array');
+  return [];
+}
+
 // Quest dialogue functions
 function startQuestDialogue(questId) {
   const dialogue = questDialogues[questId];
@@ -152,7 +195,48 @@ function handleQuestDialogueInput(key) {
 function shouldStartQuestDialogue(obj) {
   if (!obj || !obj.name) return false;
   const questName = obj.name.toLowerCase();
-  return questName.includes('quest') && questDialogues[questName];
+  
+  // Check if it's a valid quest
+  if (!questName.includes('quest') || !questDialogues[questName]) {
+    return false;
+  }
+  
+  // Extract quest number for level requirement check
+  const questMatch = questName.match(/quest\s*(\d+)/i);
+  if (questMatch) {
+    const questNumber = parseInt(questMatch[1]);
+    
+    // Quests 8 and above require level 4
+    if (questNumber >= 8) {
+      // Check if player data is available
+      const playerLevel = getPlayerLevel();
+      const completedQuests = getPlayerCompletedQuests();
+      
+      if (playerLevel < 4) {
+        console.log(`❌ Quest ${questNumber} requires level 4. Current level: ${playerLevel}`);
+        return false;
+      }
+      
+      // Also check if previous quests are completed
+      const requiredPreviousQuests = [];
+      for (let i = 1; i < questNumber; i++) {
+        requiredPreviousQuests.push(`quest ${i}`);
+      }
+      
+      const hasAllPrerequisites = requiredPreviousQuests.every(prevQuest => 
+        completedQuests.includes(prevQuest.toLowerCase())
+      );
+      
+      if (!hasAllPrerequisites) {
+        console.log(`❌ Quest ${questNumber} requires completing previous quests. Missing prerequisites.`);
+        return false;
+      }
+      
+      console.log(`✅ Quest ${questNumber} requirements met (Level: ${playerLevel}, Previous quests completed)`);
+    }
+  }
+  
+  return true;
 }
 
 // Get quest name from object

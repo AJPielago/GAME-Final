@@ -684,8 +684,113 @@
                             </div>
                             <% if (user.questHistory.length > 3) { %>
                                 <div id="all-quest-history" style="display: none; margin-top: 1rem;">
-                                    <!-- Additional quest history items would go here -->
-                                    <p style="color: rgba(255, 255, 255, 0.7); text-align: center; padding: 1rem;">Showing latest 3 quests. More history coming soon!</p>
+                                    <!-- Additional quest history items -->
+                                    <div class="quest-history-list" style="margin-top: 1rem;">
+                                        <% user.questHistory.slice().reverse().slice(3).forEach((history, index) => { 
+                                            const adjustedIndex = index + 3; // Adjust index for proper review toggling
+                                            const scoreColor = history.quizScore.percentage >= 80 ? '#27ae60' : 
+                                                              history.quizScore.percentage >= 60 ? '#f39c12' : '#e74c3c';
+                                        %>
+                                            <div class="quest-history-item" style="margin-bottom: 1rem; border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 8px; padding: 1rem; background: rgba(20, 30, 50, 0.5);">
+                                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                                                    <div style="flex: 1; padding-right: 1rem;">
+                                                        <h4 style="color: #FFD700; margin: 0 0 0.5rem 0;"><%= history.questName %></h4>
+                                                        <% 
+                                                            const questDescriptions = {
+                                                                'First Quest': 'Your first step into the world of JavaScript programming',
+                                                                'JavaScript History': 'Learn about the origins and evolution of JavaScript',
+                                                                'Variables & Data Types': 'Master the fundamentals of storing and working with data',
+                                                                'Functions in JavaScript': 'Create reusable code blocks with functions',
+                                                                'Conditionals (if/else)': 'Make decisions in your code with conditional statements'
+                                                            };
+                                                            const questDesc = questDescriptions[history.questName] || 'JavaScript programming quest';
+                                                        %>
+                                                        <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; margin: 0 0 0.5rem 0; line-height: 1.4;">
+                                                            <%= questDesc %>
+                                                        </p>
+                                                        <p style="color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; margin: 0;">
+                                                            <i class="fas fa-calendar"></i> Completed: <%= new Date(history.completedAt).toLocaleDateString() %>
+                                                        </p>
+                                                    </div>
+                                                    <div style="text-align: right;">
+                                                        <div style="color: <%= scoreColor %>; font-size: 1.5rem; font-weight: bold;">
+                                                            <%= history.quizScore.percentage %>%
+                                                        </div>
+                                                        <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem;">
+                                                            <%= history.quizScore.correct %>/<%= history.quizScore.total %> correct
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                                                    <span style="background: rgba(39, 174, 96, 0.2); color: #27ae60; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem;">
+                                                        <i class="fas fa-star"></i> +<%= history.totalXP %> XP
+                                                    </span>
+                                                    <span style="background: rgba(255, 215, 0, 0.2); color: #FFD700; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem;">
+                                                        <i class="fas fa-coins"></i> +<%= history.totalGold %> Gold
+                                                    </span>
+                                                    <% if (history.challengeCompleted) { %>
+                                                        <span style="background: rgba(52, 152, 219, 0.2); color: #3498db; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem;">
+                                                            <i class="fas fa-code"></i> Challenge Complete
+                                                        </span>
+                                                    <% } %>
+                                                </div>
+                                                
+                                                <button onclick="toggleQuestReview(<%= adjustedIndex %>)" class="btn btn-outline" style="width: 100%; margin-top: 0.5rem;">
+                                                    <i class="fas fa-eye"></i> Review Answers
+                                                </button>
+                                                
+                                                <div id="quest-review-<%= adjustedIndex %>" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(212, 175, 55, 0.3);">
+                                                    <h5 style="color: white; margin-bottom: 1rem;">Quiz Review:</h5>
+                                                    <% history.quizAnswers.forEach((answer, qIndex) => { %>
+                                                        <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border-left: 4px solid <%= answer.isCorrect ? '#27ae60' : '#e74c3c' %>;">
+                                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                                                                <span style="color: <%= answer.isCorrect ? '#27ae60' : '#e74c3c' %>; font-size: 1.25rem;">
+                                                                    <i class="fas fa-<%= answer.isCorrect ? 'check-circle' : 'times-circle' %>"></i>
+                                                                </span>
+                                                                <strong style="color: white;">Question <%= qIndex + 1 %>:</strong>
+                                                            </div>
+                                                            <p style="color: rgba(255, 255, 255, 0.9); margin-bottom: 1rem;"><%= answer.question %></p>
+                                                            
+                                                            <div style="margin-left: 1.5rem;">
+                                                                <% answer.options.forEach((option, oIndex) => { 
+                                                                    const isUserAnswer = oIndex === answer.userAnswer;
+                                                                    const isCorrectAnswer = oIndex === answer.correctAnswer;
+                                                                    let optionStyle = 'color: rgba(255, 255, 255, 0.7);';
+                                                                    if (isUserAnswer && !answer.isCorrect) {
+                                                                        optionStyle = 'color: #e74c3c; font-weight: bold;';
+                                                                    } else if (isCorrectAnswer) {
+                                                                        optionStyle = 'color: #27ae60; font-weight: bold;';
+                                                                    }
+                                                                %>
+                                                                    <div style="<%= optionStyle %> margin-bottom: 0.5rem;">
+                                                                        <% if (isUserAnswer && !answer.isCorrect) { %>
+                                                                            <i class="fas fa-times"></i>
+                                                                        <% } else if (isCorrectAnswer) { %>
+                                                                            <i class="fas fa-check"></i>
+                                                                        <% } %>
+                                                                        <%= option %>
+                                                                        <% if (isUserAnswer && !answer.isCorrect) { %>
+                                                                            <span style="font-size: 0.85rem;"> (Your answer)</span>
+                                                                        <% } else if (isCorrectAnswer) { %>
+                                                                            <span style="font-size: 0.85rem;"> (Correct answer)</span>
+                                                                        <% } %>
+                                                                    </div>
+                                                                <% }); %>
+                                                            </div>
+                                                        </div>
+                                                    <% }); %>
+                                                    
+                                                    <% if (history.challengeCompleted && history.challengeCode) { %>
+                                                        <div style="margin-top: 1.5rem;">
+                                                            <h5 style="color: white; margin-bottom: 0.75rem;">Your Challenge Code:</h5>
+                                                            <pre style="background: rgba(0, 0, 0, 0.5); padding: 1rem; border-radius: 8px; color: #27ae60; overflow-x: auto; font-size: 0.9rem;"><%= history.challengeCode %></pre>
+                                                        </div>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        <% }); %>
+                                    </div>
                                 </div>
                                 <button onclick="toggleSection('all-quest-history', this)" class="btn btn-outline btn-full" style="margin-top: 1rem;">
                                     <i class="fas fa-chevron-down"></i>

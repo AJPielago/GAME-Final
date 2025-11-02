@@ -219,10 +219,33 @@ router.get('/profile', requireAuth, async (req, res) => {
       };
     }
 
-    // FORCE SYNC: Always sync questsCompleted with actual questHistory count
-    const actualQuestsCompleted = user.questHistory ? user.questHistory.length : 0;
+    // Deduplicate quest history FIRST to get accurate unique quest count
+    let uniqueQuests = [];
+    if (user.questHistory && user.questHistory.length > 0) {
+      const questMap = new Map();
+      
+      // Process each quest entry - keep only highest scoring attempt per quest
+      user.questHistory.forEach(quest => {
+        const questId = quest.questId;
+        const existing = questMap.get(questId);
+        
+        // If no existing entry or this one has a higher score, use this one
+        if (!existing || quest.quizScore.percentage > existing.quizScore.percentage) {
+          questMap.set(questId, quest);
+        }
+      });
+      
+      // Convert map to array
+      uniqueQuests = Array.from(questMap.values());
+      
+      console.log(`📊 Quest deduplication: ${user.questHistory.length} total entries → ${uniqueQuests.length} unique quests`);
+    }
+
+    // FORCE SYNC: Always sync questsCompleted with UNIQUE quest count
+    const actualQuestsCompleted = uniqueQuests.length;
     console.log(`🔄 Profile sync for user ${user.username}:`);
-    console.log(`   questHistory.length = ${actualQuestsCompleted}`);
+    console.log(`   questHistory.length (raw) = ${user.questHistory ? user.questHistory.length : 0}`);
+    console.log(`   questHistory.length (unique) = ${actualQuestsCompleted}`);
     console.log(`   gameStats.questsCompleted = ${user.gameStats.questsCompleted}`);
     
     if (user.gameStats.questsCompleted !== actualQuestsCompleted) {
@@ -233,9 +256,9 @@ router.get('/profile', requireAuth, async (req, res) => {
       console.log(`   ✅ Already in sync: ${actualQuestsCompleted}`);
     }
 
-    // Calculate and sync codeLinesWritten from all quests
-    if (user.questHistory && user.questHistory.length > 0) {
-      const totalCodeLines = user.questHistory.reduce((total, quest) => {
+    // Calculate and sync codeLinesWritten from UNIQUE quests only
+    if (uniqueQuests.length > 0) {
+      const totalCodeLines = uniqueQuests.reduce((total, quest) => {
         let lines = 0;
         // Count quiz questions answered (each question counts as 1 line)
         if (quest.quizAnswers && quest.quizAnswers.length > 0) {
@@ -251,7 +274,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       
       if (user.gameStats.codeLinesWritten !== totalCodeLines) {
         user.gameStats.codeLinesWritten = totalCodeLines;
-        console.log(`✅ Synced codeLinesWritten to ${totalCodeLines}`);
+        console.log(`✅ Synced codeLinesWritten to ${totalCodeLines} (from unique quests)`);
       }
     }
 
@@ -260,6 +283,32 @@ router.get('/profile', requireAuth, async (req, res) => {
 
     // RELOAD the user to get the updated data for the template
     const updatedUser = await User.findById(req.session.userId).select('-password');
+
+    // Apply deduplicated quest history for display
+    if (updatedUser.questHistory && updatedUser.questHistory.length > 0) {
+      const questMap = new Map();
+      
+      // Process each quest entry
+      updatedUser.questHistory.forEach(quest => {
+        const questId = quest.questId;
+        const existing = questMap.get(questId);
+        
+        // If no existing entry or this one has a higher score, use this one
+        if (!existing || quest.quizScore.percentage > existing.quizScore.percentage) {
+          questMap.set(questId, quest);
+        }
+      });
+      
+      // Convert map back to array, sorted by completion date (most recent first)
+      updatedUser.questHistory = Array.from(questMap.values())
+        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+      
+      console.log(`📊 Deduplicated quest history for display: ${updatedUser.questHistory.length} unique quests`);
+      
+      // IMPORTANT: Update gameStats to match the deduplicated count for display
+      updatedUser.gameStats.questsCompleted = updatedUser.questHistory.length;
+      console.log(`✅ Updated display gameStats.questsCompleted to ${updatedUser.gameStats.questsCompleted}`);
+    }
 
     res.render('profile', {
       title: `${updatedUser.username}'s Profile`,
@@ -349,10 +398,10 @@ router.post('/character-selection', requireAuth, async (req, res) => {
         }
       });
     } else {
-      // Regular form submission - redirect to game
-      console.log('🎮 Redirecting to /game');
+      // Regular form submission - redirect to prologue first
+      console.log('🎬 Redirecting to /prologue after character selection');
       req.session.success = 'Character selection saved successfully!';
-      res.redirect('/game');
+      res.redirect('/prologue');
     }
   } catch (error) {
     console.error('Character selection save error:', error);
@@ -441,11 +490,11 @@ router.get('/leaderboard', async (req, res) => {
   }
 });
 
-// Game route (protected)
-router.get('/game', requireAuth, async (req, res) => {
+// Prologue route (protected) - Shows prologue video before game
+router.get('/prologue', requireAuth, async (req, res) => {
   try {
-    console.log('Game route accessed by user ID:', req.session.userId);
-    
+    console.log('Prologue route accessed - showing prologue video');
+
     const user = await User.findById(req.session.userId).select('-password');
     if (!user) {
       console.log('User not found for ID:', req.session.userId);
@@ -454,23 +503,103 @@ router.get('/game', requireAuth, async (req, res) => {
       return res.redirect('/auth/login');
     }
 
-    console.log('Rendering game for user:', user.username);
-    console.log('👤 User character type:', user.characterType);
-    console.log('🖼️ User character avatar:', user.characterAvatar);
-    res.render('game', {
-      title: 'CodeQuest - Game',
-      user: user,
-      // Add debug info to the template
-      _debug: {
-        userId: user._id,
-        timestamp: new Date().toISOString(),
-        nodeEnv: process.env.NODE_ENV || 'development',
-        scripts: [
-          '/js/game.js',
-          '/js/map.js'
-        ]
-      }
+    console.log('Rendering prologue for user:', user.username);
+    res.render('prologue', {
+      title: 'CodeQuest - Prologue',
+      user: user
     });
+  } catch (error) {
+    console.error('Prologue route error:', error);
+    req.session.error = 'Unable to load prologue. Please try again.';
+    res.redirect('/dashboard');
+  }
+});
+
+// Play Game route (protected) - Redirects to /game for full sequence on refresh
+router.get('/play-game', requireAuth, async (req, res) => {
+  try {
+    console.log('Play Game route accessed - redirecting to /game for full sequence');
+    // Redirect to /game which will trigger character selection -> prologue -> game
+    return res.redirect('/game');
+  } catch (error) {
+    console.error('Play Game route error:', error);
+    req.session.error = 'Unable to load game. Please try again.';
+    res.redirect('/dashboard');
+  }
+});
+
+// Game Page route (protected) - MODIFIED: Also redirect to character selection for full refresh sequence
+router.get('/game-page', requireAuth, async (req, res) => {
+  try {
+    console.log('Game Page route accessed - redirecting to character selection for full sequence');
+
+    // ALWAYS redirect to character selection to ensure full sequence on every access
+    return res.redirect('/character-selection');
+
+  } catch (error) {
+    console.error('Game Page route error:', error);
+    req.session.error = 'Unable to load game. Please try again.';
+    res.redirect('/dashboard');
+  }
+});
+
+// Game route (protected) - Clears character data on browser refresh, but allows normal game access after prologue
+router.get('/game', requireAuth, async (req, res) => {
+  try {
+    console.log('Game route accessed by user ID:', req.session.userId);
+    console.log('Query parameters:', req.query);
+
+    const user = await User.findById(req.session.userId).select('-password');
+    if (!user) {
+      console.log('User not found for ID:', req.session.userId);
+      req.session.destroy();
+      req.session.error = 'User not found. Please log in again.';
+      return res.redirect('/auth/login');
+    }
+
+    // Check if coming from prologue - if so, allow normal game access
+    if (req.query.from === 'prologue') {
+      console.log('Coming from prologue - allowing normal game access');
+      
+      // Check if user has selected a character
+      if (!user.characterType || !user.characterAvatar) {
+        console.log('No character selected after prologue - redirecting to character selection');
+        return res.redirect('/character-selection');
+      }
+
+      console.log('Rendering game for user:', user.username);
+      console.log('👤 User character type:', user.characterType);
+      console.log('🖼️ User character avatar:', user.characterAvatar);
+      
+      return res.render('game', {
+        title: 'CodeQuest - Game',
+        user: user,
+        _debug: {
+          userId: user._id,
+          timestamp: new Date().toISOString(),
+          nodeEnv: process.env.NODE_ENV || 'development',
+          scripts: [
+            '/js/game.js',
+            '/js/map.js'
+          ]
+        }
+      });
+    }
+
+    // Browser refresh detected - clear character data for full sequence
+    console.log('Browser refresh detected - clearing character data for full sequence');
+    if (user.characterType || user.characterAvatar) {
+      user.characterType = null;
+      user.characterAvatar = null;
+      user.codingStyle = null;
+      user.learningGoals = [];
+      await user.save();
+      console.log('✅ Character data cleared for browser refresh');
+    }
+
+    console.log('Redirecting to character selection for full sequence...');
+    return res.redirect('/character-selection');
+    
   } catch (error) {
     console.error('Game route error:', error);
     req.session.error = 'Unable to load game. Please try again.';
@@ -478,7 +607,7 @@ router.get('/game', requireAuth, async (req, res) => {
   }
 });
 
-// Get user profile (protected)
+// Get user profile (protected) - MODIFIED: Always return fresh Level 1 data
 router.get('/api/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('-password');
@@ -486,34 +615,26 @@ router.get('/api/profile', requireAuth, async (req, res) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    // Ensure gameStats is initialized
-    if (!user.gameStats) {
-      user.gameStats = {
+    // ALWAYS return fresh Level 1 data - ignore database values
+    console.log('🔄 Profile API: Returning fresh Level 1 data (database values ignored)');
+    
+    res.json({
+      success: true,
+      playerName: user.username || 'Unknown Player',
+      inGameName: null,
+      pixelCoins: 0,
+      experience: 0,
+      level: 1,
+      badges: [],
+      achievements: [],
+      gameStats: {
         monstersDefeated: 0,
         questsCompleted: 0,
         codeLinesWritten: 0,
         playTime: 0
-      };
-    }
-
-    // FORCE SYNC: Always sync questsCompleted with actual questHistory count
-    const actualQuestsCompleted = user.questHistory ? user.questHistory.length : 0;
-    if (user.gameStats.questsCompleted !== actualQuestsCompleted) {
-      user.gameStats.questsCompleted = actualQuestsCompleted;
-      await user.save();
-      console.log(`🔄 API Profile sync: questsCompleted=${actualQuestsCompleted}`);
-    }
-
-    res.json({
-      success: true,
-      playerName: user.username || 'Unknown Player',
-      inGameName: user.inGameName || null,
-      pixelCoins: user.pixelCoins || 0,
-      experience: user.experience || 0,
-      level: user.level || 1,
-      badges: user.badges || [],
-      achievements: user.achievements || [],
-      gameStats: user.gameStats
+      },
+      role: user.role || 'player',
+      characterType: user.characterType || 'knight'
     });
   } catch (error) {
     console.error('Profile API error:', error);
@@ -572,43 +693,71 @@ router.post('/game/save', requireAuth, async (req, res) => {
       } else {
         console.warn('⚠️ Invalid player position data:', playerPosition);
       }
+    } else if (playerPosition === null) {
+      // Explicitly clear gameState for new game
+      user.gameState = null;
+      console.log('🗑️ Cleared player position for new game');
+      
+      // Clear quest history for complete fresh start
+      user.questHistory = [];
+      console.log('📜 Cleared quest history for new game');
+      
+      // Clear any additional persistent data that should be reset
+      user.characterAvatar = null;
+      user.characterType = null;
+      user.codingStyle = null;
+      user.learningGoals = [];
+      console.log('🎭 Cleared character data for new game');
     }
     
-    // Update profile data with validation
-    if (typeof pixelCoins === 'number' && pixelCoins >= 0) {
-      user.pixelCoins = pixelCoins;
-      console.log('💰 Updated pixelCoins:', pixelCoins);
-    }
+    // Determine if this save represents higher progress (higher level)
+    const currentLevel = user.level || 1;
+    const incomingLevel = typeof level === 'number' && level >= 1 ? level : currentLevel;
+    const isHigherProgress = incomingLevel >= currentLevel;
     
-    if (typeof experience === 'number' && experience >= 0) {
-      user.experience = experience;
-      console.log('⭐ Updated experience:', experience);
-    }
+    console.log(`🔄 Progress check for user ${user.username}:`);
+    console.log(`   Current level: ${currentLevel}, Incoming level: ${incomingLevel}`);
+    console.log(`   Is higher progress: ${isHigherProgress}`);
     
-    if (typeof level === 'number' && level >= 1) {
-      user.level = level;
-      console.log('📊 Updated level:', level);
-    }
-    
-    if (Array.isArray(badges)) {
-      user.badges = badges.filter(badge => typeof badge === 'string');
-      console.log('🏆 Updated badges:', user.badges);
-      console.log('🏆 Badge types:', badges.map(b => typeof b));
-    }
-    
-    if (Array.isArray(achievements)) {
-      user.achievements = achievements;
-      console.log('🎖️ Updated achievements:', achievements.length);
-    }
-    
-    if (gameStats && typeof gameStats === 'object') {
-      user.gameStats = {
-        monstersDefeated: Number(gameStats.monstersDefeated) || user.gameStats?.monstersDefeated || 0,
-        questsCompleted: Number(gameStats.questsCompleted) || user.gameStats?.questsCompleted || 0,
-        codeLinesWritten: Number(gameStats.codeLinesWritten) || user.gameStats?.codeLinesWritten || 0,
-        playTime: Number(gameStats.playTime) || user.gameStats?.playTime || 0
-      };
-      console.log('📈 Updated gameStats:', user.gameStats);
+    // Update profile data with validation - only update progress fields if level is higher
+    if (isHigherProgress) {
+      if (typeof pixelCoins === 'number' && pixelCoins >= 0) {
+        user.pixelCoins = pixelCoins;
+        console.log('💰 Updated pixelCoins:', pixelCoins);
+      }
+      
+      if (typeof experience === 'number' && experience >= 0) {
+        user.experience = experience;
+        console.log('⭐ Updated experience:', experience);
+      }
+      
+      if (typeof level === 'number' && level >= 1) {
+        user.level = level;
+        console.log('📊 Updated level:', level);
+      }
+      
+      if (Array.isArray(badges)) {
+        user.badges = badges.filter(badge => typeof badge === 'string');
+        console.log('🏆 Updated badges:', user.badges);
+        console.log('🏆 Badge types:', badges.map(b => typeof b));
+      }
+      
+      if (Array.isArray(achievements)) {
+        user.achievements = achievements;
+        console.log('🎖️ Updated achievements:', achievements.length);
+      }
+      
+      if (gameStats && typeof gameStats === 'object') {
+        user.gameStats = {
+          monstersDefeated: Number(gameStats.monstersDefeated) || user.gameStats?.monstersDefeated || 0,
+          questsCompleted: Number(gameStats.questsCompleted) || user.gameStats?.questsCompleted || 0,
+          codeLinesWritten: Number(gameStats.codeLinesWritten) || user.gameStats?.codeLinesWritten || 0,
+          playTime: Number(gameStats.playTime) || user.gameStats?.playTime || 0
+        };
+        console.log('📈 Updated gameStats:', user.gameStats);
+      }
+    } else {
+      console.log('⚠️ Skipping progress updates - incoming level not higher than current level');
     }
     
     // Store additional game state data with validation
@@ -687,7 +836,7 @@ router.post('/game/save', requireAuth, async (req, res) => {
   }
 });
 
-// Load game state (protected)
+// Load game state (protected) - DISABLED: Always return no save data for fresh start
 router.get('/game/load', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('-password');
@@ -695,63 +844,9 @@ router.get('/game/load', requireAuth, async (req, res) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    // Check if user has a valid saved game (not just default/reset values)
-    const hasValidSave = user.pixelCoins > 0 || 
-                         user.experience > 0 || 
-                         user.level > 1 || 
-                         (user.badges && user.badges.length > 0) ||
-                         (user.extendedGameState?.completedQuests && user.extendedGameState.completedQuests.length > 0) ||
-                         (user.gameState?.x !== undefined && user.gameState?.y !== undefined);
-
-    // If no valid save found, return no save data
-    if (!hasValidSave) {
-      console.log('ℹ️ No valid save found for user:', user.username);
-      console.log('📊 User data:', {
-        coins: user.pixelCoins,
-        xp: user.experience,
-        level: user.level,
-        badges: user.badges?.length,
-        position: user.gameState ? { x: user.gameState.x, y: user.gameState.y } : null
-      });
-      return res.json({ success: false, message: 'No save data found' });
-    }
-
-    const saveData = {
-      playerName: user.username,
-      inGameName: user.inGameName || null,
-      pixelCoins: user.pixelCoins || 0,
-      experience: user.experience || 0,
-      level: user.level || 1,
-      badges: user.badges || [],
-      achievements: user.achievements || [],
-      gameStats: user.gameStats || {
-        monstersDefeated: 0,
-        questsCompleted: 0,
-        codeLinesWritten: 0,
-        playTime: 0
-      },
-      playerPosition: (user.gameState?.x !== undefined && user.gameState?.y !== undefined && 
-                       !((user.gameState.x === 0 && user.gameState.y === 0) || 
-                         (user.gameState.x === 32 && user.gameState.y === 32))) ? {
-        x: user.gameState.x,
-        y: user.gameState.y
-      } : null,
-      collectedRewards: user.extendedGameState?.collectedRewards || [],
-      activeQuests: user.extendedGameState?.activeQuests || [],
-      completedQuests: user.extendedGameState?.completedQuests || [],
-      interactedNPCs: user.extendedGameState?.interactedNPCs || [],
-      questProgress: user.extendedGameState?.questProgress || {},
-      playerDirection: user.extendedGameState?.playerDirection || 'right',
-      currentAnimation: user.extendedGameState?.currentAnimation || 'idle',
-      savedAt: user.gameState?.savedAt || new Date().toISOString()
-    };
-
-    console.log('✅ Game loaded for user:', user.username);
-    console.log('📍 Player position being sent:', saveData.playerPosition);
-    
-    // Note: Collision overrides are now loaded globally via /api/collision-overrides/load
-    
-    res.json({ success: true, data: saveData });
+    // ALWAYS return no save data - force fresh start every time
+    console.log('🔄 Auto-load disabled - returning no save data for fresh start');
+    return res.json({ success: false, message: 'No save data found (auto-load disabled)' });
   } catch (error) {
     console.error('Load game error:', error);
     res.status(500).json({ success: false, message: 'Failed to load game' });
@@ -842,6 +937,18 @@ router.post('/api/quest-history', requireAuth, async (req, res) => {
     console.log(`📚 Before saving quest history for user ${user.username}:`);
     console.log(`   Current questHistory.length = ${user.questHistory.length}`);
     console.log(`   Adding quest: ${questName}`);
+    
+    // Check if this quest has already been completed
+    const existingQuestIndex = user.questHistory.findIndex(q => q.questId === questId);
+    
+    if (existingQuestIndex >= 0) {
+      console.log(`⚠️ Quest ${questId} (${questName}) already exists in history at index ${existingQuestIndex}`);
+      console.log(`   Skipping duplicate quest recording`);
+      
+      // Return success but don't add duplicate
+      res.json({ success: true, message: 'Quest already recorded (duplicate skipped)' });
+      return;
+    }
     
     user.questHistory.push(questHistoryEntry);
     

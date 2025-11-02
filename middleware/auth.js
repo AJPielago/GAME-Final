@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 // Middleware to check if user is authenticated via session
-const requireAuth = (req, res, next) => {
+const requireAuth = async (req, res, next) => {
   if (!req.session.userId) {
     // Check if this is an API/AJAX request (expects JSON response)
     const isApiRequest = req.path.startsWith('/api/') || 
@@ -23,6 +23,37 @@ const requireAuth = (req, res, next) => {
     req.session.error = 'Please log in to access this page.';
     return res.redirect('/auth/login');
   }
+
+  // Check if user is active
+  try {
+    const user = await User.findById(req.session.userId).select('isActive');
+    if (!user || !user.isActive) {
+      // Clear session for inactive users
+      req.session.userId = null;
+      req.session.username = null;
+      
+      // Check if this is an API/AJAX request
+      const isApiRequest = req.path.startsWith('/api/') || 
+                           req.path.startsWith('/game/') ||
+                           req.headers.accept?.includes('application/json') ||
+                           req.headers['content-type']?.includes('application/json');
+      
+      if (isApiRequest) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Your account has been deactivated.',
+          redirectTo: '/auth/login'
+        });
+      }
+      
+      req.session.error = 'Your account has been deactivated.';
+      return res.redirect('/auth/login');
+    }
+  } catch (error) {
+    console.error('Error checking user status:', error);
+    // On error, allow access to prevent lockout, but log the error
+  }
+
   next();
 };
 
@@ -81,8 +112,8 @@ const requireAdmin = async (req, res, next) => {
   }
   
   try {
-    const user = await User.findById(req.session.userId).select('role');
-    if (!user || user.role !== 'admin') {
+    const user = await User.findById(req.session.userId).select('role isActive');
+    if (!user || user.role !== 'admin' || !user.isActive) {
       return res.status(403).render('error', {
         title: 'Access Denied',
         message: 'You do not have permission to access this page.',

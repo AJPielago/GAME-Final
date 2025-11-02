@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <style>
+    /* Crystal Report Style - Dedicated Printable Version */
+
+    body {
+      font-family: 'Times New Roman', serif;
+      font-size: 12pt;
+      line-height: 1.4;
+      margin: 0;
+      padding: 20pt;
+      color: #000;
+      background: white;
+    }
+
+    /* Report Header */
+    .report-header {
+      text-align: center;
+      border-bottom: 3px solid #000;
+      margin-bottom: 20pt;
+      padding-bottom: 15pt;
+      counter-reset: section; /* Reset section counter */
+    }
+
+    .report-header h1 {
+      font-size: 28pt;
+      font-weight: bold;
+      margin: 0 0 10pt 0;
+      text-transform: uppercase;
+      letter-spacing: 2pt;
+    }
+
+    .report-header p {
+      font-size: 14pt;
+      margin: 0;
+      font-style: italic;
+      color: #666;
+    }
+
+    /* Report metadata */
+    .report-meta {
+      width: 100%;
+      margin-bottom: 25pt;
+      border-collapse: collapse;
+      font-size: 11pt;
+    }
+
+    .report-meta td {
+      padding: 8pt 12pt;
+      border: 1px solid #666;
+      background: #f9f9f9;
+    }
+
+    .report-meta .label {
+      font-weight: bold;
+      background: #e0e0e0;
+      width: 140pt;
+    }
+
+    /* Section headers */
+    .section-header {
+      font-size: 18pt;
+      font-weight: bold;
+      color: #000;
+      border-bottom: 2px solid #000;
+      margin: 30pt 0 15pt 0;
+      padding-bottom: 8pt;
+      page-break-after: avoid;
+    }
+
+    .section-header::before {
+      content: counter(section) ". ";
+      counter-increment: section;
+      font-weight: bold;
+    }
+
+    /* Statistics table */
+    .stats-table {
+      width: 100%;
+      margin-bottom: 25pt;
+      border-collapse: collapse;
+      page-break-inside: avoid;
+    }
+
+    .stats-table td {
+      padding: 12pt;
+      border: 2px solid #000;
+      text-align: center;
+      background: #f8f8f8;
+    }
+
+    .stat-number {
+      font-size: 20pt;
+      font-weight: bold;
+      font-family: 'Arial Black', Arial, sans-serif;
+      display: block;
+      margin-bottom: 5pt;
+    }
+
+    .stat-label {
+      font-size: 11pt;
+      text-transform: uppercase;
+      letter-spacing: 1pt;
+      color: #666;
+    }
+
+    /* Distribution tables */
+    .distribution-table {
+      width: 100%;
+      margin-bottom: 25pt;
+      border-collapse: collapse;
+      page-break-inside: avoid;
+    }
+
+    .distribution-table th,
+    .distribution-table td {
+      padding: 8pt 12pt;
+      border: 1px solid #666;
+      text-align: left;
+    }
+
+    .distribution-table th {
+      background: #e0e0e0;
+      font-weight: bold;
+      font-size: 12pt;
+    }
+
+    .distribution-table .percentage {
+      text-align: right;
+      font-weight: bold;
+    }
+
+    /* Progress bars for print */
+    .progress-bar-print {
+      width: 100%;
+      height: 16pt;
+      background: #e0e0e0;
+      border: 1px solid #999;
+      margin: 5pt 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #666;
+      transition: none;
+    }
+
+    /* Activity summary */
+    .activity-summary {
+      width: 100%;
+      margin-bottom: 25pt;
+      border-collapse: collapse;
+      page-break-inside: avoid;
+    }
+
+    .activity-summary td {
+      padding: 15pt;
+      border: 1px solid #ccc;
+      text-align: center;
+      background: #f8f8f8;
+    }
+
+    .activity-icon {
+      font-size: 24pt;
+      margin-bottom: 8pt;
+      display: block;
+    }
+
+    .activity-value {
+      font-size: 18pt;
+      font-weight: bold;
+      margin: 5pt 0;
+    }
+
+    .activity-label {
+      font-size: 10pt;
+      color: #666;
+      text-transform: uppercase;
+    }
+
+    /* User table */
+    .user-table {
+      width: 100%;
+      margin-top: 30pt;
+      border-collapse: collapse;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+
+    .user-table th,
+    .user-table td {
+      padding: 6pt 8pt;
+      border: 1px solid #666;
+      text-align: left;
+    }
+
+    .user-table th {
+      background: #e0e0e0;
+      font-weight: bold;
+      font-size: 10pt;
+      text-transform: uppercase;
+    }
+
+    .user-table tbody tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    .user-table tbody tr:nth-child(odd) {
+      background: white;
+    }
+
+    /* Page breaks */
+    .page-break {
+      page-break-before: always;
+    }
+
+    .no-break {
+      page-break-inside: avoid;
+    }
+
+    /* Footer */
+    .report-footer {
+      position: fixed;
+      bottom: 20pt;
+      left: 20pt;
+      right: 20pt;
+      text-align: center;
+      font-size: 9pt;
+      color: #666;
+      border-top: 1px solid #ccc;
+      padding-top: 10pt;
+    }
+
+    /* Print optimizations */
+    @media print {
+      body {
+        margin: 0;
+      }
+
+      .report-footer {
+        position: fixed;
+        bottom: 0.5in;
+      }
+
+      @page {
+        size: A4;
+        margin: 0.5in;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Report Header -->
+  <div class="report-header">
+    <h1><%= title %></h1>
+    <p>Comprehensive User Statistics and Activity Analysis</p>
+  </div>
+
+  <!-- Report Metadata -->
+  <table class="report-meta">
+    <tr>
+      <td class="label">Report Generated:</td>
+      <td><%= reportDate %></td>
+    </tr>
+    <tr>
+      <td class="label">Report Period:</td>
+      <td><%= reportPeriod %></td>
+    </tr>
+    <tr>
+      <td class="label">Total Users:</td>
+      <td><%= stats.totalUsers %></td>
+    </tr>
+    <tr>
+      <td class="label">Active Users:</td>
+      <td><%= stats.activeUsers %></td>
+    </tr>
+  </table>
+
+  <!-- Executive Summary -->
+  <h2 class="section-header">Executive Summary</h2>
+
+  <table class="stats-table">
+    <tr>
+      <td>
+        <span class="stat-number"><%= stats.totalUsers %></span>
+        <span class="stat-label">Total Users</span>
+      </td>
+      <td>
+        <span class="stat-number"><%= stats.activeUsers %></span>
+        <span class="stat-label">Active Users</span>
+      </td>
+      <td>
+        <span class="stat-number"><%= stats.adminUsers %></span>
+        <span class="stat-label">Administrators</span>
+      </td>
+      <td>
+        <span class="stat-number"><%= stats.playerUsers %></span>
+        <span class="stat-label">Players</span>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="stat-number"><%= stats.avgLevel %></span>
+        <span class="stat-label">Average Level</span>
+      </td>
+      <td>
+        <span class="stat-number"><%= stats.avgPixelCoins %></span>
+        <span class="stat-label">Avg Coins</span>
+      </td>
+      <td>
+        <span class="stat-number"><%= stats.totalMonstersDefeated %></span>
+        <span class="stat-label">Monsters Defeated</span>
+      </td>
+      <td>
+        <span class="stat-number"><%= stats.totalQuestsCompleted %></span>
+        <span class="stat-label">Quests Completed</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- User Demographics -->
+  <h2 class="section-header">User Demographics</h2>
+
+  <table class="distribution-table">
+    <tr>
+      <th colspan="3" style="text-align: center; font-size: 14pt;">Character Type Distribution</th>
+    </tr>
+    <% Object.entries(distributions.characterTypes).forEach(([type, count]) => { %>
+      <tr>
+        <td style="text-transform: capitalize; font-weight: bold;"><%= type %></td>
+        <td><%= count %> users</td>
+        <td class="percentage"><%= ((count/stats.totalUsers)*100).toFixed(1) %>%</td>
+      </tr>
+      <tr>
+        <td colspan="3" style="padding: 0;">
+          <div class="progress-bar-print">
+            <div class="progress-fill" style="width: <%= (count/stats.totalUsers)*100 %>%"></div>
+          </div>
+        </td>
+      </tr>
+    <% }); %>
+  </table>
+
+  <table class="distribution-table">
+    <tr>
+      <th colspan="3" style="text-align: center; font-size: 14pt;">JavaScript Skill Distribution</th>
+    </tr>
+    <% Object.entries(distributions.jsLevels).forEach(([level, count]) => { %>
+      <tr>
+        <td style="text-transform: capitalize; font-weight: bold;"><%= level %></td>
+        <td><%= count %> users</td>
+        <td class="percentage"><%= ((count/stats.totalUsers)*100).toFixed(1) %>%</td>
+      </tr>
+      <tr>
+        <td colspan="3" style="padding: 0;">
+          <div class="progress-bar-print">
+            <div class="progress-fill" style="width: <%= (count/stats.totalUsers)*100 %>%"></div>
+          </div>
+        </td>
+      </tr>
+    <% }); %>
+  </table>
+
+  <!-- Activity Summary -->
+  <h2 class="section-header">Activity Summary</h2>
+
+  <table class="activity-summary">
+    <tr>
+      <td>
+        <span class="activity-icon">🏆</span>
+        <span class="activity-value"><%= stats.totalQuestsCompleted %></span>
+        <span class="activity-label">Total Quests</span>
+      </td>
+      <td>
+        <span class="activity-icon">⚔️</span>
+        <span class="activity-value"><%= stats.totalMonstersDefeated %></span>
+        <span class="activity-label">Monsters Defeated</span>
+      </td>
+      <td>
+        <span class="activity-icon">⏰</span>
+        <span class="activity-value"><%= Math.floor(stats.totalPlayTime / 60) %>h</span>
+        <span class="activity-label">Total Play Time</span>
+      </td>
+      <td>
+        <span class="activity-icon">⭐</span>
+        <span class="activity-value"><%= stats.avgLevel %></span>
+        <span class="activity-label">Average Level</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Detailed User Report -->
+  <h2 class="section-header">Detailed User Report</h2>
+
+  <table class="user-table">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>In-Game Name</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Level</th>
+        <th>Experience</th>
+        <th>Coins</th>
+        <th>Character</th>
+        <th>JS Level</th>
+        <th>Quests</th>
+        <th>Monsters</th>
+        <th>Play Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(user => { %>
+        <tr>
+          <td style="font-weight: bold;"><%= user.username %></td>
+          <td><%= user.email %></td>
+          <td><%= user.inGameName || '-' %></td>
+          <td style="text-transform: uppercase; font-weight: bold;"><%= user.role || 'player' %></td>
+          <td><%= user.isActive ? 'Active' : 'Inactive' %></td>
+          <td><%= user.level || 1 %></td>
+          <td><%= user.experience || 0 %></td>
+          <td><%= user.pixelCoins || 0 %></td>
+          <td style="text-transform: capitalize;"><%= user.characterType || 'knight' %></td>
+          <td style="text-transform: capitalize;"><%= user.jsLevel || 'beginner' %></td>
+          <td><%= user.gameStats?.questsCompleted || 0 %></td>
+          <td><%= user.gameStats?.monstersDefeated || 0 %></td>
+          <td><%= user.gameStats?.playTime || 0 %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <!-- Report Footer -->
+  <div class="report-footer">
+    CodeQuest Analytics Report - Generated on <%= reportDate %>
+  </div>
+
+  <script>
+    // Auto-print when page loads
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 500);
+    };
+  </script>
+</body>
+</html>

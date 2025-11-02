@@ -8,7 +8,7 @@
   'use strict';
 
   // Map configuration
-  const MAP_SRC = '/images/map/Map1.tmj';
+  const MAP_SRC = '/images/map/map1.tmj';
   
   // Map data storage
   let mapData = null;
@@ -491,6 +491,9 @@
 
     const tw = mapData.tilewidth || 16;
     const th = mapData.tileheight || tw;
+
+    console.log('🎯 Finding spawn point in map:', MAP_SRC);
+    console.log('📊 Map data layers:', mapData.layers?.length || 0);
 
     // Look specifically for "spawn" layer with spawn point (ID 284)
     for (const layer of mapData.layers || []) {
