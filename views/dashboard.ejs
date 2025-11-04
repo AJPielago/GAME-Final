@@ -841,7 +841,7 @@
                 // Update quest progress based on user level
                 const progressFill = document.querySelector('.progress-fill');
                 if (progressFill) {
-                    const progressPercent = Math.min((userData.level * 15), 100); // 15% per level, max 100%
+                    const progressPercent = Math.min((userData.level - 1) * 15, 100); // 15% per level, max 100%
                     progressFill.style.width = progressPercent + '%';
                     
                     const questStats = document.querySelector('.quest-stats');

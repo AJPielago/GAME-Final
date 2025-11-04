@@ -11,6 +11,21 @@
 
   console.log('🎮 Map3 Game System Initializing...');
 
+  // Clear any sessionStorage character contamination from previous sessions
+  sessionStorage.removeItem('selectedCharacterType');
+  sessionStorage.removeItem('selectedAvatar');
+  console.log('🧹 Cleared sessionStorage character contamination');
+
+  // Monitor character type changes
+  let lastCharacterType = window.gameData?.user?.characterType;
+  setInterval(() => {
+    const currentType = window.gameData?.user?.characterType;
+    if (currentType !== lastCharacterType) {
+      console.log(`🚨 CHARACTER TYPE CHANGED: ${lastCharacterType} → ${currentType}`);
+      lastCharacterType = currentType;
+    }
+  }, 1000);
+
   // Ensure gameData exists even if not authenticated
   console.log('🔍 game_map3.js: Initial window.gameData check:', window.gameData);
   
@@ -1045,6 +1060,69 @@
   // Draw player - copied from game.js
   // ... (rest of the code remains the same)
 
+  // Helper function to get user-specific storage key
+  function getUserStorageKey(baseKey) {
+    const userId = window.gameData?.user?.id;
+    if (!userId) {
+      console.warn('⚠️ No user ID available, using generic storage key');
+      return baseKey;
+    }
+    return `${baseKey}_user_${userId}`;
+  }
+
+  // Debug function to clear all save slots
+  window.clearAllSaveSlots = function() {
+    console.log('🗑️ Clearing all save slots for testing...');
+    console.log('🔍 Current user ID:', window.gameData?.user?.id);
+    
+    // Get user ID for storage keys
+    const userId = window.gameData?.user?.id;
+    const suffix = userId ? `_user_${userId}` : '';
+    
+    console.log('🔍 Using suffix:', suffix);
+    
+    // Clear all possible save slot keys
+    const keysToClear = [
+      `game_map3_save_slot_1${suffix}`,
+      `game_map3_save_slot_2${suffix}`,
+      `game_map3_save_slot_3${suffix}`,
+      `game_save_slot_1${suffix}`,
+      `game_save_slot_2${suffix}`,
+      `game_save_slot_3${suffix}`,
+      // Also try without suffix just in case
+      'game_map3_save_slot_1',
+      'game_map3_save_slot_2',
+      'game_map3_save_slot_3',
+      'game_save_slot_1',
+      'game_save_slot_2',
+      'game_save_slot_3'
+    ];
+    
+    let clearedCount = 0;
+    keysToClear.forEach(key => {
+      if (localStorage.getItem(key)) {
+        console.log(`🗑️ Removing: ${key}`);
+        localStorage.removeItem(key);
+        clearedCount++;
+      }
+    });
+    
+    // Also clear any sessionStorage contamination
+    sessionStorage.removeItem('selectedCharacterType');
+    sessionStorage.removeItem('selectedAvatar');
+    sessionStorage.removeItem('startingNewGame');
+    
+    console.log(`✅ Cleared ${clearedCount} save slots and sessionStorage`);
+    
+    // Show what's left in localStorage for debugging
+    console.log('🔍 Remaining localStorage keys:');
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('save_slot') || key.includes('character')) {
+        console.log(`  - ${key}: ${localStorage.getItem(key)}`);
+      }
+    });
+  };
+
   // Save/Load Game Slots System for Map3
   function saveGameToSlot(slot) {
     if (!player || !gameState || !playerProfile) {
@@ -1053,12 +1131,17 @@
     }
 
     try {
+      const currentCharacterType = window.gameData?.user?.characterType || 'knight';
+      console.log(`💾 SAVING GAME - Current character type: ${currentCharacterType}`);
+      console.log(`💾 SAVING GAME - window.gameData:`, window.gameData?.user);
+      
       const saveData = {
         player: {
           x: player.x,
           y: player.y,
           direction: gameState.playerDirection || 'right',
-          animation: gameState.currentAnimation || 'idle'
+          animation: gameState.currentAnimation || 'idle',
+          characterType: currentCharacterType
         },
         playerProfile: {
           playerName: playerProfile.playerName,
@@ -1079,7 +1162,7 @@
         timestamp: Date.now()
       };
 
-      localStorage.setItem(`game_map3_save_slot_${slot}`, JSON.stringify(saveData));
+      localStorage.setItem(getUserStorageKey(`game_map3_save_slot_${slot}`), JSON.stringify(saveData));
       console.log(`💾 Game saved to Map3 slot ${slot} at ${new Date(saveData.timestamp).toLocaleString()}`);
       return true;
     } catch (error) {
@@ -1090,7 +1173,10 @@
 
   function loadGameFromSlot(slot) {
     try {
-      const data = localStorage.getItem(`game_map3_save_slot_${slot}`);
+      console.log(`📥 LOADING GAME FROM SLOT ${slot} - Before load:`);
+      console.log(`📥 Current window.gameData.characterType: ${window.gameData?.user?.characterType}`);
+      
+      const data = localStorage.getItem(getUserStorageKey(`game_map3_save_slot_${slot}`));
       if (!data) {
         console.log(`ℹ️ No save data found in Map3 slot ${slot}`);
         return false;
@@ -1098,6 +1184,8 @@
 
       const saveData = JSON.parse(data);
       console.log(`📥 Loading game from Map3 slot ${slot} (saved ${new Date(saveData.timestamp).toLocaleString()})`);
+      console.log(`📥 Saved character type in slot: ${saveData.player?.characterType}`);
+      console.log(`📥 Full saveData:`, saveData);
 
       // Restore player data
       if (saveData.player) {
@@ -1105,6 +1193,36 @@
         if (typeof saveData.player.y === 'number') player.y = saveData.player.y;
         if (saveData.player.direction) gameState.playerDirection = saveData.player.direction;
         if (saveData.player.animation) gameState.currentAnimation = saveData.player.animation;
+        
+        // Restore character type and clear sessionStorage contamination
+        if (saveData.player.characterType) {
+          // Clear any sessionStorage contamination from new games
+          sessionStorage.removeItem('selectedCharacterType');
+          sessionStorage.removeItem('selectedAvatar');
+          
+          // Force update window.gameData with the saved character type
+          if (window.gameData && window.gameData.user) {
+            const savedCharacterType = saveData.player.characterType;
+            window.gameData.user.characterType = savedCharacterType;
+            console.log(`🎭 FORCED RESTORE - Set character type to: ${savedCharacterType}`);
+            console.log(`🎭 Previous window.gameData.user.characterType was: ${savedCharacterType}`);
+            
+            // Force reload character sprite with saved character type
+            if (animationManager) {
+              console.log(`🎨 Loading character sprite for saved type: ${savedCharacterType}`);
+              animationManager.loadCharacterSprite(savedCharacterType);
+            }
+            
+            // Force reload character avatar
+            console.log(`🖼️ Reloading character avatar for saved type: ${savedCharacterType}`);
+            loadCharacterAvatar();
+            
+            // Force UI update to show the correct character
+            setTimeout(() => {
+              console.log(`🔄 UI update - Current character type: ${window.gameData.user.characterType}`);
+            }, 100);
+          }
+        }
       }
 
       // Restore player profile
@@ -1136,7 +1254,7 @@
   }
 
   function getSaveSlotInfo(slot) {
-    const data = localStorage.getItem(`game_map3_save_slot_${slot}`);
+    const data = localStorage.getItem(getUserStorageKey(`game_map3_save_slot_${slot}`));
     if (!data) return null;
 
     try {

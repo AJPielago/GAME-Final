@@ -2,6 +2,21 @@
 (function(){
   'use strict';
 
+  // Clear any sessionStorage character contamination from previous sessions
+  sessionStorage.removeItem('selectedCharacterType');
+  sessionStorage.removeItem('selectedAvatar');
+  console.log('🧹 Cleared sessionStorage character contamination');
+
+  // Monitor character type changes
+  let lastCharacterType = window.gameData?.user?.characterType;
+  setInterval(() => {
+    const currentType = window.gameData?.user?.characterType;
+    if (currentType !== lastCharacterType) {
+      console.log(`🚨 CHARACTER TYPE CHANGED: ${lastCharacterType} → ${currentType}`);
+      lastCharacterType = currentType;
+    }
+  }, 1000);
+
   const canvas = document.getElementById('gameCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -591,9 +606,72 @@
     }
   }
   
+  // Helper function to get user-specific storage key
+  function getUserStorageKey(baseKey) {
+    const userId = window.gameData?.user?.id;
+    if (!userId) {
+      console.warn('⚠️ No user ID available, using generic storage key');
+      return baseKey;
+    }
+    return `${baseKey}_user_${userId}`;
+  }
+
+  // Debug function to clear all save slots
+  window.clearAllSaveSlots = function() {
+    console.log('🗑️ Clearing all save slots for testing...');
+    console.log('🔍 Current user ID:', window.gameData?.user?.id);
+    
+    // Get user ID for storage keys
+    const userId = window.gameData?.user?.id;
+    const suffix = userId ? `_user_${userId}` : '';
+    
+    console.log('🔍 Using suffix:', suffix);
+    
+    // Clear all possible save slot keys
+    const keysToClear = [
+      `game_save_slot_1${suffix}`,
+      `game_save_slot_2${suffix}`,
+      `game_save_slot_3${suffix}`,
+      `game_map3_save_slot_1${suffix}`,
+      `game_map3_save_slot_2${suffix}`,
+      `game_map3_save_slot_3${suffix}`,
+      // Also try without suffix just in case
+      'game_save_slot_1',
+      'game_save_slot_2',
+      'game_save_slot_3',
+      'game_map3_save_slot_1',
+      'game_map3_save_slot_2',
+      'game_map3_save_slot_3'
+    ];
+    
+    let clearedCount = 0;
+    keysToClear.forEach(key => {
+      if (localStorage.getItem(key)) {
+        console.log(`🗑️ Removing: ${key}`);
+        localStorage.removeItem(key);
+        clearedCount++;
+      }
+    });
+    
+    // Also clear any sessionStorage contamination
+    sessionStorage.removeItem('selectedCharacterType');
+    sessionStorage.removeItem('selectedAvatar');
+    sessionStorage.removeItem('startingNewGame');
+    
+    console.log(`✅ Cleared ${clearedCount} save slots and sessionStorage`);
+    
+    // Show what's left in localStorage for debugging
+    console.log('🔍 Remaining localStorage keys:');
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('save_slot') || key.includes('character')) {
+        console.log(`  - ${key}: ${localStorage.getItem(key)}`);
+      }
+    });
+  };
+
   // Save slot functions
   function getSaveSlotInfo(slot) {
-    const data = localStorage.getItem(`game_save_slot_${slot}`);
+    const data = localStorage.getItem(getUserStorageKey(`game_save_slot_${slot}`));
     if (!data) return null;
 
     try {
@@ -618,13 +696,17 @@
           pixelCoins: playerProfile.pixelCoins,
           experience: playerProfile.experience,
           level: playerProfile.level,
-          badges: playerProfile.badges,
-          achievements: playerProfile.achievements,
-          gameStats: playerProfile.gameStats
+          badges: [...playerProfile.badges],
+          achievements: [...playerProfile.achievements],
+          gameStats: {...playerProfile.gameStats}
         },
         playerPosition: {
-          x: gameState.player?.x || 0,
-          y: gameState.player?.y || 0
+          x: player.x,
+          y: player.y,
+          direction: gameState.playerDirection || 'right',
+          animation: gameState.currentAnimation || 'idle',
+          sprite: player.sprite || null,
+          characterType: window.gameData?.user?.characterType || 'knight'
         },
         collectedRewards: Array.from(gameState.collectedRewards || []),
         activeQuests: Array.from(gameState.activeQuests || []),
@@ -636,7 +718,7 @@
         timestamp: new Date().toISOString()
       };
 
-      localStorage.setItem(`game_save_slot_${slot}`, JSON.stringify(savePayload));
+      localStorage.setItem(getUserStorageKey(`game_save_slot_${slot}`), JSON.stringify(savePayload));
       console.log(`💾 Game saved to slot ${slot}`);
       playerController.showNotification(`Game saved to slot ${slot}!`, '#00FF00');
       return true;
@@ -648,7 +730,10 @@
 
   function loadGameFromSlot(slot) {
     try {
-      const data = localStorage.getItem(`game_save_slot_${slot}`);
+      console.log(`📥 LOADING GAME FROM SLOT ${slot} - Before load:`);
+      console.log(`📥 Current window.gameData.characterType: ${window.gameData?.user?.characterType}`);
+      
+      const data = localStorage.getItem(getUserStorageKey(`game_save_slot_${slot}`));
       if (!data) {
         console.log(`❌ No save data found in slot ${slot}`);
         playerController.showNotification(`No save data in slot ${slot}!`, '#FF6B6B');
@@ -656,6 +741,9 @@
       }
 
       const saveData = JSON.parse(data);
+      console.log(`📥 Loading game from slot ${slot} (saved ${new Date(saveData.timestamp).toLocaleString()})`);
+      console.log(`📥 Saved character type in slot: ${saveData.player?.characterType}`);
+      console.log(`📥 Full saveData:`, saveData);
       
       // Update player profile
       if (saveData.playerProfile) {
@@ -747,7 +835,7 @@
 
     // Calculate center position
     const menuWidth = 450; // Wider to accommodate timestamps
-    const menuHeight = 430; // Increased height for more options (including refresh)
+    const menuHeight = 430; // Height for 8 options (3 save slots × 2 + New Game + Exit)
     const centerX = canvas.width / 2 - menuWidth / 2;
     const centerY = canvas.height / 2 - menuHeight / 2;
 
@@ -795,8 +883,6 @@
       
       options.push(saveText, loadText);
     }
-    // Add Refresh option
-    options.push({ text: '🔄 Refresh Game', color: '#00CED1' });
     // Add New Game option
     options.push({ text: '🆕 New Game', color: '#FF6B6B' });
     // Add exit option
@@ -2964,13 +3050,10 @@
             case '6': // Load Slot 3
                 loadGameFromSlot(3);
                 break;
-            case '7': // Refresh Game
-                this.refreshGame();
-                break;
-            case '8': // New Game
+            case '7': // New Game
                 this.startNewGame();
                 break;
-            case '9': // Exit Game
+            case '8': // Exit Game
                 console.log('🚪 Exit Game - returning to main map');
                 window.location.href = '/';
                 break;
@@ -2980,7 +3063,7 @@
     
     async loadGameFromSlot(slot) {
         try {
-            const saveData = localStorage.getItem(`game-save-${slot}`);
+            const saveData = localStorage.getItem(getUserStorageKey(`game-save-${slot}`));
             if (!saveData) {
                 console.log(`No save data in slot ${slot}!`);
                 return false;
@@ -3068,9 +3151,30 @@
             
             // Restore player position
             if (saveData.playerPosition && player) {
-                player.x = saveData.playerPosition.x;
-                player.y = saveData.playerPosition.y;
-                console.log('📍 Player position restored from save:', saveData.playerPosition);
+                const savedX = Number(saveData.playerPosition.x);
+                const savedY = Number(saveData.playerPosition.y);
+                
+                // Check if we have valid coordinates (not the default 0,0 which indicates no real saved position)
+                if (!isNaN(savedX) && !isNaN(savedY) && (savedX !== 0 || savedY !== 0)) {
+                    player.x = savedX;
+                    player.y = savedY;
+                    console.log('📍 Player position restored from save:', saveData.playerPosition);
+                } else {
+                    // No saved position (new game) - set to spawn point
+                    console.log('🎯 Invalid or default saved position (0,0), finding spawn point...');
+                    const spawn = MapRenderer.findPlayerStart();
+                    console.log('🎯 Spawn point found:', spawn);
+                    if (spawn) {
+                        player.x = spawn.x;
+                        player.y = spawn.y;
+                        console.log('🎯 Player set to spawn point:', spawn);
+                    } else {
+                        // Fallback if no spawn point found
+                        player.x = 32;
+                        player.y = 32;
+                        console.log('⚠️ No spawn point found - using fallback position: (32, 32)');
+                    }
+                }
             } else if (player) {
                 // No saved position (new game) - set to spawn point
                 console.log('🎯 No saved position found, finding spawn point...');
@@ -3212,6 +3316,9 @@
         sessionStorage.removeItem('selectedAvatar');
         sessionStorage.removeItem('selectedCharacterType');
         
+        // Set flag to indicate new game is starting
+        sessionStorage.setItem('startingNewGame', 'true');
+        
         // Reset player profile to initial state
         const resetData = {
             playerName: playerProfile.playerName, // Keep the player's name
@@ -3236,7 +3343,8 @@
             playerDirection: 'right',
             currentAnimation: 'idle',
             selectedAvatar: null, // Clear character sprite
-            selectedCharacterType: null
+            selectedCharacterType: null,
+            isNewGame: true // Flag to indicate this is a new game reset
         };
         
         console.log('💾 Saving reset data to server...');
@@ -3277,6 +3385,9 @@
         sessionStorage.removeItem('selectedAvatar');
         sessionStorage.removeItem('selectedCharacterType');
         
+        // Set flag to indicate new game is starting
+        sessionStorage.setItem('startingNewGame', 'true');
+        
         // Reset player profile to initial state
         const resetData = {
             playerName: playerProfile.playerName, // Keep the player's name
@@ -3306,7 +3417,8 @@
             characterAvatar: null,
             characterType: null,
             codingStyle: null,
-            learningGoals: []
+            learningGoals: [],
+            isNewGame: true // Flag to indicate this is a new game reset
         };
         
         console.log('💾 Saving reset data to server...');
@@ -4527,7 +4639,7 @@ class AnimationManager {
     // Handle settings menu clicks
     if (gameState.showSettings) {
       const menuWidth = 450; // Updated width to match drawSettings
-      const menuHeight = 350; // Updated height to match drawSettings
+      const menuHeight = 430; // Match drawSettings height
       const centerX = canvas.width / 2 - menuWidth / 2;
       const centerY = canvas.height / 2 - menuHeight / 2;
       const optionY = centerY + 70;
@@ -4535,7 +4647,7 @@ class AnimationManager {
 
       // Check which option was clicked
       if (mouseX >= centerX + 20 && mouseX <= centerX + menuWidth - 20) {
-        for (let i = 0; i < 7; i++) { // Now 7 options instead of 4
+        for (let i = 0; i < 8; i++) { // 8 options: 3 save slots × 2 + New Game + Exit
           const optionTop = optionY + (i * lineHeight) - 18;
           const optionBottom = optionY + (i * lineHeight) + 4;
 
@@ -4636,7 +4748,7 @@ class AnimationManager {
     if (!gameState.showSettings) return;
     
     const menuWidth = 450; // Updated width to match drawSettings
-    const menuHeight = 350; // Updated height to match drawSettings
+    const menuHeight = 430; // Match drawSettings height
     const centerX = canvas.width / 2 - menuWidth / 2;
     const centerY = canvas.height / 2 - menuHeight / 2;
     const optionY = centerY + 70;
@@ -4646,7 +4758,7 @@ class AnimationManager {
     
     // Check which option is being hovered
     if (mouseX >= centerX + 20 && mouseX <= centerX + menuWidth - 20) {
-      for (let i = 0; i < 7; i++) { // Now 7 options instead of 4
+      for (let i = 0; i < 8; i++) { // 8 options: 3 save slots × 2 + New Game + Exit
         const optionTop = optionY + (i * lineHeight) - 18;
         const optionBottom = optionY + (i * lineHeight) + 4;
         
@@ -4695,8 +4807,8 @@ class AnimationManager {
         
         // Initialize player after map loads - make player MUCH larger and more visible
         player = {
-            x: 32,
-            y: 32,
+            x: 32, // Temporary position, will be overridden by spawn point
+            y: 32, // Temporary position, will be overridden by spawn point
             width: tileW * 6,  // Make player 6x larger (96x96 pixels) - much more visible!
             height: tileH * 6, // Make player 6x larger (96x96 pixels)
             speed: 300 // Increased speed for better responsiveness with larger size
@@ -4704,8 +4816,16 @@ class AnimationManager {
 
         // Find safe spawn point (collision detection removed - using map-defined spawn points only)
         const spawn = MapRenderer.findPlayerStart();
-        player.x = spawn.x;
-        player.y = spawn.y;
+        if (spawn && typeof spawn.x === 'number' && typeof spawn.y === 'number') {
+            player.x = spawn.x;
+            player.y = spawn.y;
+            console.log('🎯 Player set to spawn point:', spawn);
+        } else {
+            // Fallback to hardcoded spawn point from map1.tmj (object ID 284)
+            player.x = -521;
+            player.y = 975.666666666667;
+            console.warn('⚠️ No valid spawn point found, using hardcoded spawn coordinates: (-521, 975.666666666667)');
+        }
         
         // Process NPCs and quests from map
         MapRenderer.processMapObjects();
@@ -5822,7 +5942,7 @@ class AnimationManager {
 
     // Calculate center position
     const menuWidth = 450; // Wider to accommodate timestamps
-    const menuHeight = 430; // Increased height for more options (including refresh)
+    const menuHeight = 430; // Height for 8 options (3 save slots × 2 + New Game + Exit)
     const centerX = canvas.width / 2 - menuWidth / 2;
     const centerY = canvas.height / 2 - menuHeight / 2;
 
@@ -5870,8 +5990,6 @@ class AnimationManager {
       
       options.push(saveText, loadText);
     }
-    // Add Refresh option
-    options.push({ text: '🔄 Refresh Game', color: '#00CED1' });
     // Add New Game option
     options.push({ text: '🆕 New Game', color: '#FF6B6B' });
     
@@ -5917,6 +6035,10 @@ class AnimationManager {
     }
 
     try {
+      const currentCharacterType = window.gameData?.user?.characterType || 'knight';
+      console.log(`💾 SAVING GAME - Current character type: ${currentCharacterType}`);
+      console.log(`💾 SAVING GAME - window.gameData:`, window.gameData?.user);
+      
       const saveData = {
         player: {
           x: player.x,
@@ -5924,7 +6046,7 @@ class AnimationManager {
           direction: gameState.playerDirection || 'right',
           animation: gameState.currentAnimation || 'idle',
           sprite: player.sprite || null,
-          characterType: sessionStorage.getItem('selectedCharacterType') || null
+          characterType: currentCharacterType
         },
         playerProfile: {
           playerName: playerProfile.playerName,
@@ -5945,7 +6067,7 @@ class AnimationManager {
         timestamp: Date.now()
       };
 
-      localStorage.setItem(`game_save_slot_${slot}`, JSON.stringify(saveData));
+      localStorage.setItem(getUserStorageKey(`game_save_slot_${slot}`), JSON.stringify(saveData));
       console.log(`💾 Game saved to slot ${slot} at ${new Date(saveData.timestamp).toLocaleString()}`);
       return true;
     } catch (error) {
@@ -5956,9 +6078,9 @@ class AnimationManager {
 
   function loadGameFromSlot(slot) {
     try {
-      const data = localStorage.getItem(`game_save_slot_${slot}`);
+      const data = localStorage.getItem(getUserStorageKey(`game_save_slot_${slot}`));
       if (!data) {
-        console.log(`ℹ️ No save data found in slot ${slot}`);
+        console.log(`❌ No save data found in slot ${slot}`);
         return false;
       }
 
@@ -5977,7 +6099,32 @@ class AnimationManager {
           player.sprite = saveData.player.sprite;
         }
         if (saveData.player.characterType) {
-          sessionStorage.setItem('selectedCharacterType', saveData.player.characterType);
+          // Clear any sessionStorage contamination from new games
+          sessionStorage.removeItem('selectedAvatar');
+          sessionStorage.removeItem('selectedCharacterType');
+          
+          // Force update window.gameData with the saved character type
+          if (window.gameData && window.gameData.user) {
+            const savedCharacterType = saveData.player.characterType;
+            window.gameData.user.characterType = savedCharacterType;
+            console.log(`🎭 FORCED RESTORE - Set character type to: ${savedCharacterType}`);
+            console.log(`🎭 Previous window.gameData.user.characterType was: ${savedCharacterType}`);
+            
+            // Force reload character sprite with saved character type
+            if (playerController && playerController.animationManager) {
+              console.log(`🎨 Loading character sprite for saved type: ${savedCharacterType}`);
+              playerController.animationManager.loadSprites();
+            }
+            
+            // Force reload character avatar
+            console.log(`🖼️ Reloading character avatar for saved type: ${savedCharacterType}`);
+            loadCharacterAvatar();
+            
+            // Force UI update to show the correct character
+            setTimeout(() => {
+              console.log(`🔄 UI update - Current character type: ${window.gameData.user.characterType}`);
+            }, 100);
+          }
         }
       }
 
@@ -6010,7 +6157,7 @@ class AnimationManager {
   }
 
   function getSaveSlotInfo(slot) {
-    const data = localStorage.getItem(`game_save_slot_${slot}`);
+    const data = localStorage.getItem(getUserStorageKey(`game_save_slot_${slot}`));
     if (!data) return null;
 
     try {
@@ -6255,6 +6402,13 @@ class AnimationManager {
   // Auto-load saved game state on startup
   async function autoLoadGameState() {
     try {
+        // Check if we're starting a new game - if so, skip loading saved data
+        if (sessionStorage.getItem('startingNewGame') === 'true') {
+            console.log('🆕 New game flag detected - skipping saved game load');
+            sessionStorage.removeItem('startingNewGame'); // Clear the flag
+            return false;
+        }
+        
         console.log('📥 Auto-loading saved game state from player account...');
         
         const response = await fetch('/game/load', {
@@ -6305,17 +6459,23 @@ class AnimationManager {
           const savedX = Number(saveData.playerPosition.x);
           const savedY = Number(saveData.playerPosition.y);
           
-          // Check if we have valid coordinates
-          if (!isNaN(savedX) && !isNaN(savedY)) {
+          // Check if we have valid coordinates (not the default 0,0 which indicates no real saved position)
+          if (!isNaN(savedX) && !isNaN(savedY) && (savedX !== 0 || savedY !== 0)) {
             player.x = savedX;
             player.y = savedY;
             console.log('📍 Restored player position:', { x: player.x, y: player.y });
           } else {
-            console.log('📍 Invalid saved position, will use spawn point instead');
+            console.log('📍 Invalid or default saved position (0,0), will use spawn point instead');
+            player.x = 32; // Temporary, will be set to spawn point in start() function
+            player.y = 32; // Temporary, will be set to spawn point in start() function
             return false; // Treat as no saved game to use spawn point
           }
         } else {
           console.log('📍 No saved position found, will use spawn point instead');
+          if (player) {
+            player.x = 32; // Temporary, will be set to spawn point in start() function
+            player.y = 32; // Temporary, will be set to spawn point in start() function
+          }
           return false; // No position saved, use spawn point
         }
         
@@ -6508,9 +6668,16 @@ class AnimationManager {
             console.log('🎯 No saved game, finding spawn point...');
             const spawn = MapRenderer.findPlayerStart();
             console.log('📍 Spawn point found:', spawn);
-            player.x = spawn.x;
-            player.y = spawn.y;
-            console.log('🎮 New game - player position set to spawn point:', {x: player.x, y: player.y});
+            if (spawn && typeof spawn.x === 'number' && typeof spawn.y === 'number') {
+                player.x = spawn.x;
+                player.y = spawn.y;
+                console.log('🎮 New game - player position set to spawn point:', {x: player.x, y: player.y});
+            } else {
+                // Fallback to hardcoded spawn point from map1.tmj (object ID 284)
+                player.x = -521;
+                player.y = 975.666666666667;
+                console.warn('⚠️ No valid spawn point found, using hardcoded spawn coordinates: (-521, 975.666666666667)');
+            }
             
             // Reset prologue for new game
             resetPrologue();

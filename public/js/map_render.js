@@ -498,9 +498,12 @@
     // Look specifically for "spawn" layer with spawn point (ID 284)
     for (const layer of mapData.layers || []) {
       const layerName = layer.name.toLowerCase();
+      console.log(`🔍 Checking layer: ${layer.name} (type: ${layer.type})`);
+      
       if (layer.type === 'objectgroup' && layerName === 'spawn') {
         console.log('🎯 Found spawn layer with', layer.objects?.length || 0, 'objects');
         for (const obj of layer.objects || []) {
+          console.log(`📋 Checking object: ID=${obj.id}, name="${obj.name}", type="${obj.type}"`);
           // Look specifically for object with name "spawn point" and ID 284
           const objName = (obj.name || '').toLowerCase();
           
@@ -572,9 +575,9 @@
       }
     }
 
-    // Last resort: Use default position
-    console.warn('⚠️ No safe spawn found, using default position');
-    return { x: tw * 2, y: th * 2 }; // A bit offset from origin
+    // Last resort: Use hardcoded spawn point from map1.tmj (object ID 284)
+    console.warn('⚠️ No safe spawn found, using hardcoded spawn coordinates from map1.tmj');
+    return { x: -521, y: 975.666666666667 };
   }
 
   /**

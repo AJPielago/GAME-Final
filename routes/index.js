@@ -670,7 +670,8 @@ router.post('/game/save', requireAuth, async (req, res) => {
     const { 
       playerName, inGameName, playerPosition, pixelCoins, experience, level, 
       badges, achievements, gameStats, collectedRewards, activeQuests, 
-      completedQuests, interactedNPCs, questProgress, playerDirection, currentAnimation, savedAt 
+      completedQuests, interactedNPCs, questProgress, playerDirection, currentAnimation, savedAt,
+      isNewGame
     } = req.body || {};
     
     // Log received inGameName for debugging
@@ -715,25 +716,22 @@ router.post('/game/save', requireAuth, async (req, res) => {
       user.questHistory = [];
       console.log('📜 Cleared quest history for new game');
       
-      // Clear any additional persistent data that should be reset
-      user.characterAvatar = null;
-      user.characterType = null;
-      user.codingStyle = null;
-      user.learningGoals = [];
-      console.log('🎭 Cleared character data for new game');
+      // NOTE: Don't clear character data - character selection should be independent of game progress
+      console.log('🎭 Preserving character data for new game (character selection is independent)');
     }
     
     // Determine if this save represents higher progress (higher level)
     const currentLevel = user.level || 1;
     const incomingLevel = typeof level === 'number' && level >= 1 ? level : currentLevel;
-    const isHigherProgress = incomingLevel >= currentLevel;
+    const isHigherProgress = isNewGame === true ? true : incomingLevel >= currentLevel;
     
     console.log(`🔄 Progress check for user ${user.username}:`);
     console.log(`   Current level: ${currentLevel}, Incoming level: ${incomingLevel}`);
+    console.log(`   Is new game: ${isNewGame}`);
     console.log(`   Is higher progress: ${isHigherProgress}`);
     
-    // Update profile data with validation - only update progress fields if level is higher
-    if (isHigherProgress) {
+    // Update profile data with validation - always update if new game, otherwise only update progress fields if level is higher
+    if (isHigherProgress || isNewGame === true) {
       if (typeof pixelCoins === 'number' && pixelCoins >= 0) {
         user.pixelCoins = pixelCoins;
         console.log('💰 Updated pixelCoins:', pixelCoins);
